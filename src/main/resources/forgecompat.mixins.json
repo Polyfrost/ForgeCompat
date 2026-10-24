@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "org.polyfrost.forgecompat.mixin",
+  "plugin": "org.polyfrost.forgecompat.TransformerPlugin",
+  "compatibilityLevel": "JAVA_8",
+  "client": [
+    "MinecraftMixin",
+    "ScreenMixin",
+    "TransformTargetsMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

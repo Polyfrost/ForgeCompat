@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "forgecompat",
+  "version": "${version}",
+  "name": "Forge Compat",
+  "description": "Loads selected Forge 1.8.9 mods (OldAnimationsMod Cosmetics, HDSkins, HitDelayFix) on Ornithe.",
+  "license": "GPL-3.0-only",
+  "environment": "client",
+  "entrypoints": {
+    "preLaunch": ["org.polyfrost.forgecompat.ForgeCompat"]
+  },
+  "mixins": ["forgecompat.mixins.json"],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "minecraft": "1.8.9",
+    "pylon": "*",
+    "java": ">=25"
+  }
+}
