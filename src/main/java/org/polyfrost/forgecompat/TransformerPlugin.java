@@ -55,6 +55,7 @@ public class TransformerPlugin implements IMixinConfigPlugin {
             original.instructions.add(method.instructions);
             node.methods.set(i, original);
         }
+        ForgePatches.apply(node);
     }
 
     @Override

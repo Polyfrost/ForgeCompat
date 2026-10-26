@@ -90,6 +90,22 @@ final class Mappings {
         return mcpToInt.get(mcpName);
     }
 
+    String srgToRuntime(String srg) {
+        return srgToInt.get(srg);
+    }
+
+    String fieldByDesc(String owner, String desc) {
+        String found = null;
+        for (String key : intFields.keySet()) {
+            if (!key.startsWith(owner) || key.charAt(owner.length()) != '/' || !key.endsWith(desc)) continue;
+            String name = key.substring(owner.length() + 1, key.length() - desc.length());
+            if (name.indexOf('/') >= 0) continue;
+            if (found != null) return null;
+            found = name;
+        }
+        return found;
+    }
+
     String mapReference(String ref) {
         int semi = ref.startsWith("L") ? ref.indexOf(';') : -1;
         String owner = semi < 0 ? "" : ref.substring(1, semi);

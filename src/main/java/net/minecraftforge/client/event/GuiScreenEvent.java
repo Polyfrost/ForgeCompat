@@ -27,4 +27,22 @@ public class GuiScreenEvent extends Event {
             }
         }
     }
+
+    public static class MouseInputEvent extends GuiScreenEvent {
+        public MouseInputEvent(Screen gui) {
+            super(gui);
+        }
+
+        public static class Pre extends MouseInputEvent {
+            public Pre(Screen gui) {
+                super(gui);
+            }
+        }
+
+        public static class Post extends MouseInputEvent {
+            public Post(Screen gui) {
+                super(gui);
+            }
+        }
+    }
 }

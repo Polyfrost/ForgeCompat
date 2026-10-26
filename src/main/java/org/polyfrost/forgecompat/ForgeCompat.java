@@ -1,5 +1,6 @@
 package org.polyfrost.forgecompat;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,7 +18,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Matcher;
@@ -26,6 +26,7 @@ import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 import net.fabricmc.loader.api.FabricLoader;
@@ -35,7 +36,9 @@ import net.fabricmc.loader.impl.launch.FabricLauncherBase;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraft.launchwrapper.ITweaker;
 import net.minecraft.launchwrapper.LaunchClassLoader;
+import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.ModContainer;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 import org.apache.logging.log4j.LogManager;
@@ -44,9 +47,11 @@ import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.TypePath;
 import org.objectweb.asm.commons.ClassRemapper;
 import org.objectweb.asm.commons.Remapper;
@@ -63,15 +68,17 @@ import org.spongepowered.asm.mixin.Mixins;
  */
 public class ForgeCompat implements PreLaunchEntrypoint {
     static final Logger LOGGER = LogManager.getLogger("ForgeCompat");
-    public static final Set<String> MOD_IDS = ConcurrentHashMap.newKeySet();
+    public static final Map<String, ModContainer> MODS = new ConcurrentHashMap<>();
     private static final List<IClassTransformer> TRANSFORMERS = new CopyOnWriteArrayList<>();
     private static final List<String> MOD_CLASSES = new ArrayList<>();
     private static final List<String> SUPPORTED = Arrays.asList(
             "com.spiderfrog.gadgets.main.OAMTweaker", // OldAnimationsMod Cosmetics
             "de.hdskins.forge.v1855.HdSkinsPlugin", // HDSkins
-            "mixins.hitdelayfix.json" // HitDelayFix
+            "mixins.hitdelayfix.json", // HitDelayFix
+            Essential.TWEAKER
     );
     private static final String MIXIN_TWEAKER = "org.spongepowered.asm.launch.MixinTweaker";
+    private static final Pattern DESC_CLASS = Pattern.compile("L([\\w/$]+);");
     private static final Pattern REFMAP_VALUE = Pattern.compile("(:\\s*\")([^\"]*)\"");
     private static final String MOD_DESC ="L" + Mod.class.getName().replace('.', '/') + ";";
     private static final String MINECRAFT = "ave";
@@ -116,8 +123,13 @@ public class ForgeCompat implements PreLaunchEntrypoint {
                     long start = System.nanoTime();
                     FileTime mtime = Files.getLastModifiedTime(jar);
                     boolean cached = Files.exists(remapped) && Files.getLastModifiedTime(remapped).toMillis() == mtime.toMillis();
-                    if (cached) scanMods(zip);
-                    else remapJar(zip, remapped, mtime);
+                    if (Essential.TWEAKER.equals(tweaker)) {
+                        Essential.load(jar, zip, outDir);
+                        LOGGER.info("Loaded Essential from {} in {} ms", jar.getFileName(), (System.nanoTime() - start) / 1_000_000);
+                        continue;
+                    }
+                    if (cached) scanMods(zip, jar);
+                    else remapJar(readJar(zip), jar, remapped, mtime);
                     FabricLauncherBase.getLauncher().addToClassPath(remapped);
                     if (tweaker != null && !tweaker.equals(MIXIN_TWEAKER)) tweakers.add(tweaker);
                     if (plugin != null) plugins.add(plugin);
@@ -233,50 +245,75 @@ public class ForgeCompat implements PreLaunchEntrypoint {
         return Class.forName(name, true, ForgeCompat.class.getClassLoader()).getDeclaredConstructor().newInstance();
     }
 
-    private static void scanMods(ZipFile zip) throws IOException {
+    static void scanMods(ZipFile zip, Path source) throws IOException {
         for (Enumeration<? extends ZipEntry> it = zip.entries(); it.hasMoreElements(); ) {
             ZipEntry entry = it.nextElement();
             if (!entry.getName().endsWith(".class")) continue;
             try (InputStream in = zip.getInputStream(entry)) {
-                scanMod(new ClassReader(in));
+                scanMod(new ClassReader(in), source);
             }
         }
     }
 
-    private static void scanMod(ClassReader reader) {
+    private static void scanMod(ClassReader reader, Path source) {
         reader.accept(new ClassVisitor(Opcodes.ASM9) {
             @Override
             public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
                 if (!desc.equals(MOD_DESC)) return null;
                 MOD_CLASSES.add(reader.getClassName().replace('/', '.'));
                 return new AnnotationVisitor(Opcodes.ASM9) {
+                    private String modid;
+                    private String name = "";
+                    private String version = "";
+
                     @Override
-                    public void visit(String name, Object value) {
-                        if (name.equals("modid")) MOD_IDS.add((String) value);
+                    public void visit(String key, Object value) {
+                        if (key.equals("modid")) modid = (String) value;
+                        else if (key.equals("name")) name = (String) value;
+                        else if (key.equals("version")) version = (String) value;
+                    }
+
+                    @Override
+                    public void visitEnd() {
+                        if (modid != null) MODS.put(modid, new Loader.Container(modid, name.isEmpty() ? modid : name, version, source.toFile()));
                     }
                 };
             }
         }, ClassReader.SKIP_CODE);
     }
 
-    private static void remapJar(ZipFile zip, Path out, FileTime mtime) throws IOException {
-        Mappings mappings = mappings();
+    static Map<String, byte[]> readJar(ZipFile zip) throws IOException {
         Map<String, byte[]> entries = new LinkedHashMap<>();
         for (Enumeration<? extends ZipEntry> it = zip.entries(); it.hasMoreElements(); ) {
             ZipEntry entry = it.nextElement();
-            String name = entry.getName();
-            if (entry.isDirectory() || name.startsWith("META-INF/") && (name.endsWith(".SF") || name.endsWith(".RSA") || name.endsWith(".DSA"))) continue;
-            if (name.startsWith("org/spongepowered/") || name.startsWith("META-INF/services/org.spongepowered.") || name.equals("META-INF/services/javax.annotation.processing.Processor")) continue;
+            if (entry.isDirectory()) continue;
             try (InputStream in = zip.getInputStream(entry)) {
-                entries.put(name, readAll(in));
+                entries.put(entry.getName(), readAll(in));
             }
         }
+        return entries;
+    }
+
+    static Map<String, byte[]> readJar(byte[] jar) throws IOException {
+        Map<String, byte[]> entries = new LinkedHashMap<>();
+        try (ZipInputStream in = new ZipInputStream(new ByteArrayInputStream(jar))) {
+            for (ZipEntry entry; (entry = in.getNextEntry()) != null; ) {
+                if (!entry.isDirectory()) entries.put(entry.getName(), readAll(in));
+            }
+        }
+        return entries;
+    }
+
+    static void remapJar(Map<String, byte[]> entries, Path source, Path out, FileTime mtime) throws IOException {
+        Mappings mappings = mappings();
+        entries.keySet().removeIf(name -> name.startsWith("META-INF/") && (name.endsWith(".SF") || name.endsWith(".RSA") || name.endsWith(".DSA"))
+                || name.startsWith("org/spongepowered/") || name.startsWith("META-INF/services/org.spongepowered.") || name.equals("META-INF/services/javax.annotation.processing.Processor"));
         mappings.modClasses.clear();
         for (Map.Entry<String, byte[]> entry : entries.entrySet()) {
             if (!entry.getKey().endsWith(".class")) continue;
             ClassReader reader = new ClassReader(entry.getValue());
             mappings.modClasses.put(reader.getClassName(), new Mappings.ClassInfo(reader));
-            scanMod(reader);
+            scanMod(reader, source);
         }
         Path tmp = out.resolveSibling(out.getFileName() + ".tmp");
         try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(tmp))) {
@@ -308,7 +345,7 @@ public class ForgeCompat implements PreLaunchEntrypoint {
         return writer.toByteArray();
     }
 
-    private static byte[] readAll(InputStream in) throws IOException {
+    static byte[] readAll(InputStream in) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         byte[] buffer = new byte[8192];
         for (int n; (n = in.read(buffer)) != -1; ) out.write(buffer, 0, n);
@@ -355,17 +392,93 @@ public class ForgeCompat implements PreLaunchEntrypoint {
         }
     }
 
+    private static AnnotationVisitor forgeTargets(AnnotationVisitor next) {
+        return next == null ? null : new AnnotationVisitor(Opcodes.ASM9, next) {
+            @Override
+            public void visit(String name, Object value) {
+                if (value instanceof String s && s.contains("net/minecraftforge/")) {
+                    Matcher matcher = DESC_CLASS.matcher(s);
+                    StringBuilder out = new StringBuilder();
+                    while (matcher.find()) {
+                        String mapped = mappings().mcpToRuntime(matcher.group(1));
+                        matcher.appendReplacement(out, Matcher.quoteReplacement("L" + (mapped == null ? matcher.group(1) : mapped) + ";"));
+                    }
+                    value = matcher.appendTail(out).toString();
+                }
+                super.visit(name, value);
+            }
+
+            @Override
+            public AnnotationVisitor visitAnnotation(String name, String desc) {
+                return forgeTargets(super.visitAnnotation(name, desc));
+            }
+
+            @Override
+            public AnnotationVisitor visitArray(String name) {
+                return forgeTargets(super.visitArray(name));
+            }
+        };
+    }
+
     private static final class HookVisitor extends ClassVisitor {
         private final String handshake = mappings().mcpToRuntime("net/minecraft/network/handshake/client/C00Handshake");
         private final String handshakeDesc = "(ILjava/lang/String;IL" + mappings().mcpToRuntime("net/minecraft/network/EnumConnectionState") + ";";
+
+        private String name;
+        private String mixinTarget;
 
         HookVisitor(ClassVisitor next) {
             super(Opcodes.ASM9, next);
         }
 
         @Override
+        public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+            this.name = name;
+            super.visit(version, access, name, signature, superName, interfaces);
+        }
+
+        @Override
+        public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
+            AnnotationVisitor next = super.visitAnnotation(desc, visible);
+            if (!desc.equals("Lorg/spongepowered/asm/mixin/Mixin;")) return next;
+            return new AnnotationVisitor(Opcodes.ASM9, next) {
+                @Override
+                public AnnotationVisitor visitArray(String key) {
+                    return new AnnotationVisitor(Opcodes.ASM9, super.visitArray(key)) {
+                        @Override
+                        public void visit(String key, Object value) {
+                            if (mixinTarget == null) mixinTarget = value instanceof Type type ? type.getInternalName() : mappings().mcpToRuntime(((String) value).replace('.', '/'));
+                            super.visit(key, value);
+                        }
+                    };
+                }
+            };
+        }
+
+        private String outerInstance(String owner, String name, String desc) {
+            if (mixinTarget == null || !owner.equals(this.name) || !name.startsWith("this$")) return name;
+            String mapped = mappings().fieldByDesc(mixinTarget, desc);
+            return mapped == null ? name : mapped;
+        }
+
+        @Override
+        public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
+            return super.visitField(access, outerInstance(this.name, name, desc), desc, signature, value);
+        }
+
+        @Override
         public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
             return new MethodVisitor(Opcodes.ASM9, super.visitMethod(access, name, desc, signature, exceptions)) {
+                @Override
+                public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
+                    return forgeTargets(super.visitAnnotation(desc, visible));
+                }
+
+                @Override
+                public void visitFieldInsn(int opcode, String owner, String name, String desc) {
+                    super.visitFieldInsn(opcode, owner, outerInstance(owner, name, desc), desc);
+                }
+
                 @Override
                 public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
                     if (opcode == Opcodes.INVOKESPECIAL && owner.equals(handshake) && desc.equals(handshakeDesc + "Z)V")) {

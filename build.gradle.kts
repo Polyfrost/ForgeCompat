@@ -37,6 +37,9 @@ loom {
         preferGradleTask = true
         runDirectory = file("run")
     }
+    runConfigs.named("client") {
+        programArgs("--uuid", "00000000000000000000000000000000")
+    }
 }
 
 java {

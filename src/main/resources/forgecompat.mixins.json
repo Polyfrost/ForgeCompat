@@ -4,7 +4,9 @@
   "plugin": "org.polyfrost.forgecompat.TransformerPlugin",
   "compatibilityLevel": "JAVA_8",
   "client": [
+    "ConnectionMixin",
     "MinecraftMixin",
+    "RenderTargetMixin",
     "ScreenMixin",
     "TransformTargetsMixin"
   ],

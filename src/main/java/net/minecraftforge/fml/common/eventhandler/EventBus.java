@@ -26,6 +26,6 @@ public class EventBus {
                 }
             }
         }
-        return false;
+        return event.isCanceled();
     }
 }
