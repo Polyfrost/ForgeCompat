@@ -30,4 +30,21 @@ public abstract class EntityViewRenderEvent extends Event {
             this.roll = roll;
         }
     }
+
+    public static class FOVModifier extends EntityViewRenderEvent {
+        private float fov;
+
+        public FOVModifier(GameRenderer renderer, Entity entity, Block block, double renderPartialTicks, float fov) {
+            super(renderer, entity, block, renderPartialTicks);
+            this.fov = fov;
+        }
+
+        public float getFOV() {
+            return fov;
+        }
+
+        public void setFOV(float fov) {
+            this.fov = fov;
+        }
+    }
 }

@@ -18,4 +18,10 @@ public class LivingEvent extends EntityEvent {
             super(entity);
         }
     }
+
+    public static class LivingJumpEvent extends LivingEvent {
+        public LivingJumpEvent(LivingEntity entity) {
+            super(entity);
+        }
+    }
 }

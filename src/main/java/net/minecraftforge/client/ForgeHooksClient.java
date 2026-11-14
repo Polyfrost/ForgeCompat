@@ -24,4 +24,16 @@ public class ForgeHooksClient {
 
     public static void renderTileItem(Item item, int metadata) {
     }
+
+    public static void drawScreen(net.minecraft.client.gui.screen.Screen screen, int mouseX, int mouseY, float partialTicks) {
+        screen.render(mouseX, mouseY, partialTicks);
+    }
+
+    public static boolean renderFirstPersonHand(net.minecraft.client.render.world.WorldRenderer context, float partialTicks, int renderPass) {
+        return net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.client.event.RenderHandEvent(context, partialTicks, renderPass));
+    }
+
+    public static void dispatchRenderLast(net.minecraft.client.render.world.WorldRenderer context, float partialTicks) {
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.client.event.RenderWorldLastEvent(context, partialTicks));
+    }
 }

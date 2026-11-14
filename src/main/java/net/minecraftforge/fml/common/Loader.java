@@ -26,6 +26,22 @@ public class Loader {
         return new ArrayList<>(getIndexedModList().values());
     }
 
+    public String getMCVersionString() {
+        return "Minecraft 1.8.9";
+    }
+
+    public String getMCPVersionString() {
+        return "MCP 9.19";
+    }
+
+    public boolean hasReachedState(LoaderState state) {
+        return org.polyfrost.forgecompat.ForgeCompat.modsInitialized() || state.ordinal() <= LoaderState.PREINITIALIZATION.ordinal();
+    }
+
+    public ModContainer activeModContainer() {
+        return null;
+    }
+
     public File getConfigDir() {
         return FabricLoader.getInstance().getConfigDir().toFile();
     }

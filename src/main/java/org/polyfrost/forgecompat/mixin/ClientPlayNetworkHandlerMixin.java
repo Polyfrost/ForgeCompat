@@ -4,6 +4,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.network.handler.ClientPlayNetworkHandler;
 import net.minecraft.network.Connection;
 import net.minecraft.network.packet.s2c.play.ChatMessageS2CPacket;
+import net.minecraft.network.packet.s2c.play.CustomPayloadS2CPacket;
+import net.minecraft.network.packet.s2c.play.LoginS2CPacket;
+import net.minecraftforge.fml.common.network.NetworkRegistry;
+import net.minecraft.network.handler.PacketHandler;
 import net.minecraft.text.Text;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.common.MinecraftForge;
@@ -40,5 +44,16 @@ public class ClientPlayNetworkHandlerMixin {
     @Inject(method = "onDisconnect", at = @At("HEAD"))
     private void forgecompat$disconnect(Text reason, CallbackInfo ci) {
         MinecraftForge.EVENT_BUS.post(new FMLNetworkEvent.ClientDisconnectionFromServerEvent(connection));
+    }
+
+    @Inject(method = "handleLogin", at = @At("HEAD"))
+    private void forgecompat$connected(LoginS2CPacket packet, CallbackInfo ci) {
+        if (!minecraft.isOnSameThread()) return;
+        MinecraftForge.EVENT_BUS.post(new FMLNetworkEvent.ClientConnectedToServerEvent(connection, "VANILLA"));
+    }
+
+    @Inject(method = "handleCustomPayload", at = @At("HEAD"), cancellable = true)
+    private void forgecompat$customPayload(CustomPayloadS2CPacket packet, CallbackInfo ci) {
+        if (minecraft.isOnSameThread() && NetworkRegistry.onClientPayload((PacketHandler) this, connection, packet)) ci.cancel();
     }
 }

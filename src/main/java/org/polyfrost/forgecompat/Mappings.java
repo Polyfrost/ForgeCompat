@@ -44,6 +44,8 @@ final class Mappings {
     final Set<String> capturedFields = ConcurrentHashMap.newKeySet();
     final Set<String> uniqueMethods = ConcurrentHashMap.newKeySet();
     final Set<String> refmapKeys = ConcurrentHashMap.newKeySet();
+    final Set<String> shadowMembers = ConcurrentHashMap.newKeySet();
+    private Map<String, List<String>> mcpToSrg;
     private final Map<String, ClassInfo> intInfoCache = new ConcurrentHashMap<>();
 
     private static Mappings instance;
@@ -198,7 +200,9 @@ final class Mappings {
         String intName = notchToInt.get(name);
         if (intName == null) {
             ClassInfo mod = modClasses.get(name);
-            return mod != null ? mod : intInfo(name);
+            if (mod != null) return mod;
+            ClassInfo stub = intInfo(name);
+            return stub == null ? null : stub.map(intToNotch);
         }
         ClassInfo info = intInfo(intName);
         return info == null ? null : info.map(intToNotch);
@@ -252,6 +256,22 @@ final class Mappings {
         }
     }
 
+    private synchronized List<String> mcpToSrg(String mcp) {
+        if (mcpToSrg == null) {
+            mcpToSrg = new HashMap<>();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(new GZIPInputStream(Mappings.class.getResourceAsStream("/forgecompat_mcp.gz")), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    int tab = line.indexOf('\t');
+                    mcpToSrg.computeIfAbsent(line.substring(tab + 1), k -> new ArrayList<>()).add(line.substring(0, tab));
+                }
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to load MCP names", e);
+            }
+        }
+        return mcpToSrg.getOrDefault(mcp, List.of());
+    }
+
     private final class HierarchyRemapper extends Remapper {
         private final Map<String, String> classes;
         private final Map<String, String> methods;
@@ -287,6 +307,18 @@ final class Mappings {
                 String srg = srgMethods.get(map(mixinTargets.getOrDefault(owner, owner)) + "/" + name + runtimeDesc);
                 return srg != null ? srg : srgMethods.getOrDefault(name + runtimeDesc, srgToInt.get(name));
             }
+            if (toIntermediary && shadowMembers.contains(owner + "/" + name)) {
+                String runtimeDesc = mapMethodDesc(desc);
+                String target = map(mixinTargets.get(owner));
+                for (String srg : mcpToSrg(name)) {
+                    String mapped = srgMethods.get(target + "/" + srg + runtimeDesc);
+                    if (mapped != null) return mapped;
+                }
+                for (String srg : mcpToSrg(name)) {
+                    String mapped = srgMethods.get(srg + runtimeDesc);
+                    if (mapped != null) return mapped;
+                }
+            }
             String mapped = find(methods, owner, "/" + name + desc);
             return mapped == null ? name : mapped;
         }
@@ -295,6 +327,14 @@ final class Mappings {
         public String mapFieldName(String owner, String name, String desc) {
             String srg = toIntermediary ? srgToInt.getOrDefault(name, mcpFields.get(owner + "/" + name)) : null;
             if (srg != null) return srg;
+            if (toIntermediary && shadowMembers.contains(owner + "/" + name)) {
+                String target = map(mixinTargets.get(owner));
+                String runtimeDesc = mapDesc(desc);
+                for (String candidate : mcpToSrg(name)) {
+                    String mapped = srgToInt.get(candidate);
+                    if (mapped != null && intFields.containsKey(target + "/" + mapped + runtimeDesc)) return mapped;
+                }
+            }
             String mapped = find(fields, owner, "/" + name + desc);
             return mapped == null ? name : mapped;
         }

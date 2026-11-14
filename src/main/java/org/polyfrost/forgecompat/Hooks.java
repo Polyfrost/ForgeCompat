@@ -30,17 +30,33 @@ import org.lwjgl.opengl.Display;
 public final class Hooks {
     static final Set<String> FORGE_METHODS = Set.of(
             "canRiderInteract/0", "getDisplayNameString/0", "shouldSpreadItems/0", "getRegistryName/0",
-            "getDigSpeed/2", "getMetadata/1", "getToolClasses/1"
+            "getDigSpeed/2", "getMetadata/1", "getToolClasses/1", "isSideSolid/3"
     );
 
     private static int modifiers;
     private static final ByteBuffer mouseButtons = ByteBuffer.allocate(16);
     private static Object lookAndFeel;
 
+    public static Class<?> forName(String name) throws ClassNotFoundException {
+        return Class.forName(runtimeClassName(name), true, Hooks.class.getClassLoader());
+    }
+
+    public static Class<?> forName(String name, boolean initialize, ClassLoader loader) throws ClassNotFoundException {
+        return Class.forName(runtimeClassName(name), initialize, loader);
+    }
+
+    private static String runtimeClassName(String name) {
+        if (name == null || !name.startsWith("net.minecraft.")) return name;
+        String mapped = ForgeCompat.mappings().mcpToRuntime(name.replace('.', '/'));
+        return mapped == null ? name : mapped.replace('/', '.');
+    }
+
     public static Field getDeclaredField(Class<?> owner, String name) throws NoSuchFieldException {
         try {
             return owner.getDeclaredField(name);
         } catch (NoSuchFieldException e) {
+            String runtime = name.startsWith("field_") ? ForgeCompat.mappings().srgToRuntime(name) : null;
+            if (runtime != null) return owner.getDeclaredField(runtime);
             if (owner == Field.class && name.equals("modifiers")) return Hooks.class.getDeclaredField("modifiers");
             if (owner == Mouse.class && name.equals("buttons")) return Hooks.class.getDeclaredField("mouseButtons");
             throw e;
@@ -124,5 +140,59 @@ public final class Hooks {
 
     public static String getEntityName(ItemStack stack) {
         return Entities.getKey(stack.getMetadata());
+    }
+
+    private static Field buttonHeight;
+
+    public static int buttonHeight(net.minecraft.client.gui.widget.ButtonWidget button) {
+        try {
+            if (buttonHeight == null) {
+                buttonHeight = net.minecraft.client.gui.widget.ButtonWidget.class.getDeclaredField(ForgeCompat.mappings().srgToRuntime("field_146121_g"));
+                buttonHeight.setAccessible(true);
+            }
+            return buttonHeight.getInt(button);
+        } catch (ReflectiveOperationException e) {
+            return 20;
+        }
+    }
+
+    public static int nextPotionId() {
+        net.minecraft.entity.living.effect.StatusEffect[] effects = net.minecraft.entity.living.effect.StatusEffect.BY_ID;
+        for (int i = 1; i < effects.length; i++) if (effects[i] == null) return i;
+        throw new IllegalStateException("No free potion ids left");
+    }
+
+    public static net.minecraftforge.fml.common.registry.RegistryDelegate<?> delegate(Object entry) {
+        net.minecraft.resource.Identifier key = entry instanceof net.minecraft.block.Block block ? net.minecraft.block.Block.REGISTRY.getKey(block) : net.minecraft.item.Item.REGISTRY.getKey((net.minecraft.item.Item) entry);
+        return new net.minecraftforge.fml.common.registry.RegistryDelegate<Object>() {
+            public Object get() { return entry; }
+            public String name() { return String.valueOf(key); }
+            public net.minecraft.resource.Identifier getResourceName() { return key; }
+            @SuppressWarnings("unchecked")
+            public Class<Object> type() { return (Class<Object>) (entry instanceof net.minecraft.block.Block ? net.minecraft.block.Block.class : net.minecraft.item.Item.class); }
+        };
+    }
+
+    public static float eyeHeight(Object entity) {
+        return ((net.minecraft.entity.Entity) entity).getEyeHeight();
+    }
+
+    public static boolean isSideSolid(Object world, net.minecraft.util.math.BlockPos pos, net.minecraft.util.math.Direction side, boolean defaultValue) {
+        net.minecraft.block.state.BlockState state = ((net.minecraft.world.WorldView) world).getBlockState(pos);
+        return state == null ? defaultValue : state.getBlock().isCube();
+    }
+
+    private static volatile net.minecraft.client.world.ClientWorld realWorld;
+
+    public static boolean isSceneWorld(net.minecraft.world.World world) {
+        return world != null && world.isClient && world != realWorld;
+    }
+
+    public static net.minecraft.client.world.ClientWorld realWorld() {
+        return realWorld;
+    }
+
+    public static void setRealWorld(net.minecraft.client.world.ClientWorld world) {
+        realWorld = world;
     }
 }

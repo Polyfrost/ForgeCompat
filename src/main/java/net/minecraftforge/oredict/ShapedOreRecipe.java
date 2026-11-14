@@ -1,0 +1,45 @@
+package net.minecraftforge.oredict;
+
+import net.minecraft.crafting.recipe.Recipe;
+import net.minecraft.inventory.CraftingInventory;
+import net.minecraft.item.ItemStack;
+import net.minecraft.world.World;
+
+public class ShapedOreRecipe implements Recipe {
+    protected ItemStack output;
+    protected Object[] input;
+
+    public ShapedOreRecipe(ItemStack output, Object[] input) {
+        this.output = output;
+        this.input = input;
+    }
+
+    public Object[] getInput() {
+        return input;
+    }
+
+    @Override
+    public boolean matches(CraftingInventory inventory, World world) {
+        return false;
+    }
+
+    @Override
+    public ItemStack getResult(CraftingInventory inventory) {
+        return output == null ? null : output.copy();
+    }
+
+    @Override
+    public int size() {
+        return 0;
+    }
+
+    @Override
+    public ItemStack getResult() {
+        return output;
+    }
+
+    @Override
+    public ItemStack[] getRemainder(CraftingInventory inventory) {
+        return new ItemStack[inventory.getSize()];
+    }
+}

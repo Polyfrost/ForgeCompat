@@ -26,4 +26,20 @@ public class FMLClientHandler {
         ForgeCompat.initMods();
         getClient().options.load();
     }
+
+    public boolean hasOptifine() {
+        return false;
+    }
+
+    public net.minecraft.network.Connection getClientToServerNetworkManager() {
+        return getClient().getNetworkHandler() == null ? null : getClient().getNetworkHandler().getConnection();
+    }
+
+    public void showGuiScreen(Object screen) {
+        getClient().openScreen((net.minecraft.client.gui.screen.Screen) screen);
+    }
+
+    public boolean isGUIOpen(Class<?> type) {
+        return getClient().screen != null && getClient().screen.getClass() == type;
+    }
 }

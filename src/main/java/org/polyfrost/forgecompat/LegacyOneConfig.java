@@ -34,16 +34,26 @@ public final class LegacyOneConfig {
     private static final List<TextHud> HUDS = new CopyOnWriteArrayList<>();
     private static volatile boolean editing;
     private static boolean listening;
+    private static final java.util.Map<cc.polyfrost.oneconfig.config.core.OneKeyBind, Boolean> KEYBINDS = new java.util.concurrent.ConcurrentHashMap<>();
 
     private LegacyOneConfig() {
     }
 
-    public static Bridge register(cc.polyfrost.oneconfig.config.Config legacy) {
+    public static void registerKeyBind(cc.polyfrost.oneconfig.config.core.OneKeyBind keyBind) {
+        listen();
+        KEYBINDS.put(keyBind, false);
+    }
+
+    private static void listen() {
         if (!listening) {
             listening = true;
             MinecraftForge.EVENT_BUS.register(new Listener());
             EventManager.register(HudEditorToggleEvent.class, (Consumer<HudEditorToggleEvent>) event -> editing = event.open);
         }
+    }
+
+    public static Bridge register(cc.polyfrost.oneconfig.config.Config legacy) {
+        listen();
         Bridge bridge = new Bridge(legacy);
         bridge.initialize(false);
         return bridge;
@@ -54,6 +64,12 @@ public final class LegacyOneConfig {
         public void onTick(TickEvent.ClientTickEvent event) {
             if (event.phase != TickEvent.Phase.END) return;
             for (TextHud hud : HUDS) hud.forgecompat$tick(editing);
+            boolean inGame = net.minecraft.client.Minecraft.getInstance().screen == null;
+            for (java.util.Map.Entry<cc.polyfrost.oneconfig.config.core.OneKeyBind, Boolean> entry : KEYBINDS.entrySet()) {
+                boolean active = inGame && entry.getKey().isActive();
+                if (active && !entry.getValue()) entry.getKey().run();
+                entry.setValue(active);
+            }
         }
 
         @SubscribeEvent
@@ -70,6 +86,28 @@ public final class LegacyOneConfig {
         Bridge(cc.polyfrost.oneconfig.config.Config legacy) {
             super(legacy.configFile, legacy.mod.name, category(legacy.mod.modType));
             this.legacy = legacy;
+        }
+
+        public void dependency(String option, String dependentOption) {
+            addDependency(option, dependentOption);
+        }
+
+        public void dependency(String option, String name, Supplier<Boolean> condition) {
+            addDependency(option, name, () -> Boolean.TRUE.equals(condition.get()) ? Property.Display.SHOWN : Property.Display.DISABLED);
+        }
+
+        public void hideIf(String option, Supplier<Boolean> condition) {
+            java.util.function.BooleanSupplier hidden = () -> Boolean.TRUE.equals(condition.get());
+            super.hideIf(option, hidden);
+        }
+
+        @Override
+        public void hideIf(String option, String dependentOption) {
+            super.hideIf(option, dependentOption);
+        }
+
+        public void listener(String option, Runnable runnable) {
+            addCallback(option, runnable);
         }
 
         public void open() {

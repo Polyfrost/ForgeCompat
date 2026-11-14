@@ -5,11 +5,14 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 
+@net.minecraftforge.fml.common.eventhandler.Cancelable
 public class PlayerInteractEvent extends PlayerEvent {
     public final Action action;
     public final World world;
     public final BlockPos pos;
     public final Direction face;
+    public net.minecraftforge.fml.common.eventhandler.Event.Result useBlock = net.minecraftforge.fml.common.eventhandler.Event.Result.DEFAULT;
+    public net.minecraftforge.fml.common.eventhandler.Event.Result useItem = net.minecraftforge.fml.common.eventhandler.Event.Result.DEFAULT;
 
     public PlayerInteractEvent(PlayerEntity player, Action action, BlockPos pos, Direction face, World world) {
         super(player);

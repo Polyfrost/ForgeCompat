@@ -12,6 +12,8 @@ public class Launch {
     public static LaunchClassLoader classLoader = new LaunchClassLoader();
     public static Map<String, Object> blackboard = new HashMap<>(Map.of(
             "fml.deobfuscatedEnvironment", false,
+            "TweakClasses", new java.util.ArrayList<>(java.util.List.of("org.spongepowered.asm.launch.MixinTweaker")),
+            "Tweaks", new java.util.ArrayList<Object>(),
             "essential.loader.stage2.stage0tweakers", Set.of("gg.essential.loader.stage0.EssentialSetupTweaker")
     ));
 }

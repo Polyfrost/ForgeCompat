@@ -26,6 +26,10 @@ public class TransformerPlugin implements IMixinConfigPlugin {
         ClassWriter writer = new ClassWriter(0);
         node.accept(writer);
         byte[] bytes = ForgeCompat.transform(node.name, writer.toByteArray());
+        if (bytes == null) {
+            ForgePatches.apply(node);
+            return;
+        }
 
         Map<String, MethodNode> originals = new HashMap<>();
         for (MethodNode method : node.methods) originals.put(method.name + method.desc, method);

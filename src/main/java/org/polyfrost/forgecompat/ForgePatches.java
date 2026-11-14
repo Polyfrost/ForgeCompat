@@ -9,6 +9,7 @@ import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.InsnNode;
+import org.objectweb.asm.tree.IntInsnNode;
 import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodInsnNode;
@@ -39,6 +40,26 @@ final class ForgePatches {
             hook.add(new FieldInsnNode(Opcodes.PUTSTATIC, node.name, "lastBrightnessY", "F"));
             hook.add(skip);
             method(node, mappings.srgToRuntime("func_77475_a"), "(IFF)V").instructions.insert(hook);
+        } else if (node.name.equals(mappings.mcpToRuntime("net/minecraft/potion/Potion"))) {
+            String identifier = mappings.mcpToRuntime("net/minecraft/util/ResourceLocation");
+            MethodNode init = new MethodNode(Opcodes.ACC_PROTECTED, "<init>", "(L" + identifier + ";ZI)V", null, null);
+            init.instructions.add(new VarInsnNode(Opcodes.ALOAD, 0));
+            init.instructions.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "org/polyfrost/forgecompat/Hooks", "nextPotionId", "()I", false));
+            init.instructions.add(new VarInsnNode(Opcodes.ALOAD, 1));
+            init.instructions.add(new VarInsnNode(Opcodes.ILOAD, 2));
+            init.instructions.add(new VarInsnNode(Opcodes.ILOAD, 3));
+            init.instructions.add(new MethodInsnNode(Opcodes.INVOKESPECIAL, node.name, "<init>", "(IL" + identifier + ";ZI)V", false));
+            init.instructions.add(new InsnNode(Opcodes.RETURN));
+            init.maxStack = 5;
+            init.maxLocals = 4;
+            node.methods.add(init);
+            for (AbstractInsnNode insn : method(node, "<clinit>", "()V").instructions.toArray()) {
+                if (insn instanceof IntInsnNode size && size.operand == 32 && insn.getNext() instanceof TypeInsnNode array && array.getOpcode() == Opcodes.ANEWARRAY && array.desc.equals(node.name)) {
+                    size.setOpcode(Opcodes.SIPUSH);
+                    size.operand = 256;
+                    break;
+                }
+            }
         } else if (node.name.equals(screen)) {
             String handleMouseInput = mappings.srgToRuntime("func_146274_d");
             MethodNode handleInput = method(node, mappings.srgToRuntime("func_146269_k"), "()V");

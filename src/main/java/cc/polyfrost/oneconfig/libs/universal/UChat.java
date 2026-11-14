@@ -14,4 +14,9 @@ public final class UChat {
         Text text = message instanceof Text t ? t : new UTextComponent(String.valueOf(message));
         mc.gui.getChat().addMessage(text);
     }
+
+    public static void say(String message) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null) mc.player.sendChat(message);
+    }
 }

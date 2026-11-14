@@ -49,4 +49,16 @@ public abstract class ScreenMixin {
     private void forgecompat$clientCommand(String message, boolean addToHistory, CallbackInfo ci) {
         if (ClientCommandHandler.instance.run(minecraft.player, message) != 0) ci.cancel();
     }
+
+    @WrapOperation(method = "handleInputs", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screen/Screen;handleKeyboard()V"))
+    private void forgecompat$keyboardInput(Screen screen, Operation<Void> original) {
+        if (MinecraftForge.EVENT_BUS.post(new GuiScreenEvent.KeyboardInputEvent.Pre(screen))) return;
+        original.call(screen);
+        if (screen.equals(minecraft.screen)) MinecraftForge.EVENT_BUS.post(new GuiScreenEvent.KeyboardInputEvent.Post(screen));
+    }
+
+    @Inject(method = "renderBackground(I)V", at = @At("TAIL"))
+    private void forgecompat$backgroundDrawn(int offset, CallbackInfo ci) {
+        MinecraftForge.EVENT_BUS.post(new GuiScreenEvent.BackgroundDrawnEvent((Screen) (Object) this));
+    }
 }

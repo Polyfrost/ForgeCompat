@@ -8,6 +8,8 @@ import net.minecraft.server.command.source.CommandSource;
 import net.minecraft.text.Formatting;
 import net.minecraft.text.Text;
 import net.minecraft.text.TranslatableText;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.CommandEvent;
 
 public class ClientCommandHandler extends CommandRegistry {
     public static final ClientCommandHandler instance = new ClientCommandHandler();
@@ -23,7 +25,12 @@ public class ClientCommandHandler extends CommandRegistry {
         if (command == null) return 0;
         try {
             if (command.canUse(source)) {
-                command.run(source, args);
+                CommandEvent event = new CommandEvent(command, source, args);
+                if (MinecraftForge.EVENT_BUS.post(event)) {
+                    if (event.exception != null) throw event.exception;
+                    return 1;
+                }
+                command.run(source, event.parameters);
                 return 1;
             }
             source.sendMessage(error("commands.generic.permission"));

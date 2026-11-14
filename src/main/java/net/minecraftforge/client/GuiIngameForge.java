@@ -6,6 +6,9 @@ import net.minecraft.client.render.Window;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 
 public class GuiIngameForge extends GameGui {
+    public static boolean renderHelmet = true, renderPortal = true, renderHotbar = true, renderCrosshairs = true,
+            renderBossHealth = true, renderHealth = true, renderArmor = true, renderFood = true, renderHealthMount = true,
+            renderAir = true, renderExperiance = true, renderJumpBar = true, renderObjective = true;
     public static int left_height = 39;
     public static int right_height = 39;
     private RenderGameOverlayEvent eventParent;
@@ -16,6 +19,10 @@ public class GuiIngameForge extends GameGui {
 
     @Override
     public void render(float tickDelta) {
+        renderGameOverlay(tickDelta);
+    }
+
+    public void renderGameOverlay(float tickDelta) {
         super.render(tickDelta);
         Window window = new Window(Minecraft.getInstance());
         renderTitle(window.getWidth(), window.getHeight(), tickDelta);

@@ -50,7 +50,7 @@ public class MinecraftMixin {
 
     @Inject(method = "init", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;reloadResources()V", ordinal = 0))
     private void forgecompat$modResources(CallbackInfo ci) {
-        for (Path jar : ForgeCompat.RESOURCE_JARS) requiredResourcePacks.add(new ZippedResourcePack(jar.toFile()));
+        for (Path jar : ForgeCompat.RESOURCE_JARS) requiredResourcePacks.add(new org.polyfrost.forgecompat.ModResourcePack(jar.toFile()));
     }
 
     @WrapMethod(method = "openScreen")
@@ -61,7 +61,15 @@ public class MinecraftMixin {
 
     @Inject(method = "setWorld(Lnet/minecraft/client/world/ClientWorld;Ljava/lang/String;)V", at = @At("HEAD"))
     private void forgecompat$worldUnload(ClientWorld world, String message, CallbackInfo ci) {
-        if (this.world != null) MinecraftForge.EVENT_BUS.post(new WorldEvent.Unload(this.world));
+        ClientWorld previous = org.polyfrost.forgecompat.Hooks.realWorld();
+        if (previous != null && previous != world) MinecraftForge.EVENT_BUS.post(new WorldEvent.Unload(previous));
+    }
+
+    @Inject(method = "setWorld(Lnet/minecraft/client/world/ClientWorld;Ljava/lang/String;)V", at = @At("TAIL"))
+    private void forgecompat$worldLoad(ClientWorld world, String message, CallbackInfo ci) {
+        ClientWorld previous = org.polyfrost.forgecompat.Hooks.realWorld();
+        org.polyfrost.forgecompat.Hooks.setRealWorld(world);
+        if (world != null && world != previous) MinecraftForge.EVENT_BUS.post(new WorldEvent.Load(world));
     }
 
     @Inject(method = "tick()V", at = @At("HEAD"))

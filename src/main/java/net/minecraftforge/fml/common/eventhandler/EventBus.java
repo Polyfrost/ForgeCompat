@@ -9,7 +9,13 @@ public class EventBus {
     private final List<Listener> listeners = new CopyOnWriteArrayList<>();
 
     public void register(Object target) {
-        for (Method method : target.getClass().getMethods()) {
+        Method[] methods;
+        try {
+            methods = target.getClass().getMethods();
+        } catch (LinkageError e) {
+            methods = declaredMethods(target.getClass());
+        }
+        for (Method method : methods) {
             SubscribeEvent subscribe = method.getAnnotation(SubscribeEvent.class);
             if (subscribe != null && method.getParameterCount() == 1) {
                 method.setAccessible(true);
@@ -17,6 +23,18 @@ public class EventBus {
             }
         }
         listeners.sort(Comparator.comparing(listener -> listener.subscribe.priority()));
+    }
+
+    private static Method[] declaredMethods(Class<?> type) {
+        List<Method> methods = new java.util.ArrayList<>();
+        for (Class<?> c = type; c != null && c != Object.class; c = c.getSuperclass()) {
+            try {
+                methods.addAll(java.util.Arrays.asList(c.getDeclaredMethods()));
+            } catch (LinkageError e) {
+                org.apache.logging.log4j.LogManager.getLogger("ForgeCompat").error("Skipping event handlers of {}: {}", c.getName(), e.toString());
+            }
+        }
+        return methods.stream().filter(m -> java.lang.reflect.Modifier.isPublic(m.getModifiers())).toArray(Method[]::new);
     }
 
     public void unregister(Object target) {

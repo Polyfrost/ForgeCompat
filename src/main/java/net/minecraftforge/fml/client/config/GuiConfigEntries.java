@@ -155,6 +155,33 @@ public class GuiConfigEntries {
     public interface IConfigEntry {
     }
 
+    public abstract static class ListEntryBase implements IConfigEntry {
+    }
+
+    public abstract static class ButtonEntry extends ListEntryBase {
+    }
+
+    public abstract static class BooleanEntry extends ButtonEntry {
+    }
+
+    public abstract static class CycleValueEntry extends ButtonEntry {
+    }
+
+    public abstract static class NumberSliderEntry extends ButtonEntry {
+    }
+
+    public abstract static class StringEntry extends ListEntryBase {
+    }
+
+    public abstract static class IntegerEntry extends StringEntry {
+    }
+
+    public abstract static class DoubleEntry extends StringEntry {
+    }
+
+    public abstract static class CategoryEntry extends ListEntryBase {
+    }
+
     private final class Entry implements IConfigEntry {
         final IConfigElement element;
         final boolean category;

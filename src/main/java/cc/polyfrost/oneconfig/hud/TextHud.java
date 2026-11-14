@@ -29,6 +29,10 @@ public abstract class TextHud {
     protected void getLinesFrequent(List<String> lines, boolean example) {
     }
 
+    protected boolean shouldShow() {
+        return enabled;
+    }
+
     public boolean isEnabled() {
         return enabled;
     }

@@ -21,4 +21,10 @@ public class WorldEvent extends Event {
             super(world);
         }
     }
+
+    public static class Save extends WorldEvent {
+        public Save(World world) {
+            super(world);
+        }
+    }
 }

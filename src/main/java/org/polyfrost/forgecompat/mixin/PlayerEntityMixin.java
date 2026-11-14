@@ -49,11 +49,22 @@ public class PlayerEntityMixin {
 
     @Inject(method = "tick", at = @At("HEAD"))
     private void forgecompat$tickStart(CallbackInfo ci) {
+        if (org.polyfrost.forgecompat.Hooks.isSceneWorld(((PlayerEntity) (Object) this).world)) return;
         MinecraftForge.EVENT_BUS.post(new TickEvent.PlayerTickEvent(TickEvent.Phase.START, (PlayerEntity) (Object) this));
     }
 
     @Inject(method = "tick", at = @At("TAIL"))
     private void forgecompat$tickEnd(CallbackInfo ci) {
+        if (org.polyfrost.forgecompat.Hooks.isSceneWorld(((PlayerEntity) (Object) this).world)) return;
         MinecraftForge.EVENT_BUS.post(new TickEvent.PlayerTickEvent(TickEvent.Phase.END, (PlayerEntity) (Object) this));
+    }
+
+    public void openGui(Object mod, int id, net.minecraft.world.World world, int x, int y, int z) {
+        PlayerEntity player = (PlayerEntity) (Object) this;
+        if (!world.isClient) return;
+        Object modInstance = mod instanceof String modId ? org.polyfrost.forgecompat.ForgeCompat.INSTANCES.get(modId) : mod;
+        net.minecraftforge.fml.common.network.IGuiHandler handler = modInstance == null ? null : net.minecraftforge.fml.common.network.NetworkRegistry.guiHandler(modInstance);
+        Object gui = handler == null ? null : handler.getClientGuiElement(id, player, world, x, y, z);
+        if (gui instanceof net.minecraft.client.gui.screen.Screen screen) net.minecraft.client.Minecraft.getInstance().openScreen(screen);
     }
 }

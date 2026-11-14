@@ -42,6 +42,7 @@ public class GuiScreenEvent extends Event {
             super(gui);
         }
 
+        @Cancelable
         public static class Pre extends MouseInputEvent {
             public Pre(Screen gui) {
                 super(gui);
@@ -60,6 +61,7 @@ public class GuiScreenEvent extends Event {
             super(gui);
         }
 
+        @Cancelable
         public static class Pre extends KeyboardInputEvent {
             public Pre(Screen gui) {
                 super(gui);
@@ -118,6 +120,26 @@ public class GuiScreenEvent extends Event {
             public Post(Screen gui, ButtonWidget button, List<ButtonWidget> buttonList) {
                 super(gui, button, buttonList);
             }
+        }
+    }
+
+    public static class BackgroundDrawnEvent extends GuiScreenEvent {
+        private final int mouseX;
+        private final int mouseY;
+
+        public BackgroundDrawnEvent(Screen gui) {
+            super(gui);
+            net.minecraft.client.render.Window window = new net.minecraft.client.render.Window(net.minecraft.client.Minecraft.getInstance());
+            this.mouseX = org.lwjgl.input.Mouse.getX() * window.getWidth() / net.minecraft.client.Minecraft.getInstance().width;
+            this.mouseY = window.getHeight() - org.lwjgl.input.Mouse.getY() * window.getHeight() / net.minecraft.client.Minecraft.getInstance().height - 1;
+        }
+
+        public int getMouseX() {
+            return mouseX;
+        }
+
+        public int getMouseY() {
+            return mouseY;
         }
     }
 }

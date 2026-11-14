@@ -1,4 +1,4 @@
 package net.minecraftforge.fml.common.event;
 
-public class FMLInitializationEvent {
+public class FMLInitializationEvent extends FMLStateEvent {
 }

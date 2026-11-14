@@ -7,6 +7,9 @@ public class SimpleNetworkWrapper {
     public <REQ extends IMessage, REPLY extends IMessage> void registerMessage(IMessageHandler<? super REQ, ? extends REPLY> handler, Class<REQ> type, int discriminator, Side side) {
     }
 
+    public <REQ extends IMessage, REPLY extends IMessage> void registerMessage(Class<? extends IMessageHandler<REQ, REPLY>> handler, Class<REQ> type, int discriminator, Side side) {
+    }
+
     public void sendToAll(IMessage message) {
     }
 

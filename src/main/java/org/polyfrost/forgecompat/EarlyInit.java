@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -24,6 +25,8 @@ import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.LanguageAdapter;
 import net.fabricmc.loader.api.ModContainer;
@@ -34,30 +37,30 @@ import net.fabricmc.loader.impl.launch.FabricLauncherBase;
 import org.apache.logging.log4j.LogManager;
 
 public final class EarlyInit implements LanguageAdapter {
-    static final List<String> SUPPORTED = Arrays.asList(
-            "com.spiderfrog.gadgets.main.OAMTweaker",
-            "de.hdskins.forge.v1855.HdSkinsPlugin",
-            "mixins.hitdelayfix.json",
-            "ragonohitdelay",
-            "accountmanager",
-            "godplace",
-            "kegiultimatelatency",
-            "keystrokes",
-            "keystrokesmod",
-            "MumbleLink",
-            "miniskywars",
-            "mixins.meowtils.json",
-            "clickgui.mixins.json",
-            "mixins.myau.json",
-            "liquidbounce.forge.mixins.json",
-            "loam",
-            "lsfix.HwidShimPlugin",
-            "zombiesinfo",
-            "nez",
-            "mixins.showspawntime.json",
-            "mixins.zombiesutils.json",
-            "gg.fkdr.forge.FkdrCoreMod",
-            Essential.TWEAKER
+    static final Set<String> BLACKLIST = Set.of(
+            "skinlayers3d", "apec", "armorhud", "autogg_reimagined", "bedwar", "bettersprint", "chattriggers", "cpsdisplay",
+            "craftify", "crash_assistant", "custom-crosshair-mod", "Danker's Skyblock Mod", "dungeons_guide_loader",
+            "entityculling.mixins.json", "epiczoomer", "euphoria_patcher", "fancywarpmenu", "foamfix", "fpsmaster", "cloudmc",
+            "fullbright", "great-scrollable-tooltips", "net.glease.healer.Healer", "heightlimitmod", "hotshirtlessmen",
+            "hypixel_mod_api", "hytools", "i18nupdatemod.launchwrapper.LaunchWrapperTweaker", "idletweaks", "lomka",
+            "lunarkeystrokes", "mcmouser", "microoptimizations", "mixinbooter", "modelfix", "modernsound", "notenoughupdates",
+            "optibye", "packcore", "particlesenhanced", "partlysaneskies", "phosphor-lighting", "pingfix", "reflex", "reportplus",
+            "ResourcePackOrganizer", "scathapro", "screenshotmessageenhancer", "secretroutesmod",
+            "io.dogboy.serializationisbad.legacyforge.SerializationIsBadCoreMod", "serverlistbufferfixer", "simpletogglesprint",
+            "text_overflow_scroll", "skyblocktweaks", "sbaunofficial", "skycofl", "skyguide", "skyhanni", "smooththirdpersoncamera",
+            "stella", "titaniumrewrite", "toggle_perspective_fixed", "veloxcaelo", "viaforge", "waveycapes",
+            // Polyfrost, microcontrollers, SkyClient, Chromatic and OneClient mods with Fabric versions
+            "20_20_20", "overflowanimations", "autorespawn", "autoskyblockrejoin", "behindyouv3", "betternightvision", "chatting",
+            "colorsaturation", "crashpatch", "polycrosshair", "damagetint", "entityglow", "evergreenhud", "freelook",
+            "glintcolorizer", "polyhitbox", "hybedwars", "hybridge", "hychatter", "hyinfo", "hylobby", "hytils-reborn",
+            "polyfrostkeystrokes", "legacy-chunk-borders", "mixmetica", "oneconfigbootstrap", "overflowparticles", "patcher",
+            "pitdontwalkondeath", "polyblur", "polynametag", "polysprint", "polytime", "polyweather", "quickconfig", "quickquit",
+            "redaction", "skyclientcosmetics", "skyblockclientupdater", "shy", "tcpdelaymod", "countdown", "vanillahud", "vignettetweaks"
+    );
+    private static final Set<String> FORGE_PREFERRED = Set.of("customskinloader-bootstrap", "zume");
+    private static final List<String> BLACKLISTED_PACKAGES = List.of(
+            "org/polyfrost/", "cc/woverflow/", "dev/microcontrollers/", "me/microcontrollers/", "com/github/microcontrollersdev/",
+            "com/github/chromaticforge/", "co/skyclient/", "mynameisjeff/skyblockclientupdater/"
     );
     static final String ONECONFIG_V0_TWEAKER = "cc.polyfrost.oneconfig.loader.stage0.LaunchWrapperTweaker";
     private static final Pattern MODID = Pattern.compile("\"modid\"\\s*:\\s*\"([^\"]+)\"");
@@ -66,6 +69,7 @@ public final class EarlyInit implements LanguageAdapter {
         Set<Path> hidden = new HashSet<>();
         for (ModContainer mod : FabricLoader.getInstance().getAllMods()) {
             if (mod.getOrigin().getKind() != ModOrigin.Kind.PATH) continue;
+            if (FORGE_PREFERRED.contains(mod.getMetadata().getId())) dropFabricHalf(mod);
             for (Path path : mod.getOrigin().getPaths()) {
                 if (!Files.isRegularFile(path)) continue;
                 try (ZipFile zip = new ZipFile(path.toFile())) {
@@ -98,6 +102,20 @@ public final class EarlyInit implements LanguageAdapter {
         LogManager.getLogger("ForgeCompat").info("Removed Fabric-loaded Forge mod jars from the class path: {}", hidden);
     }
 
+    private static void dropFabricHalf(ModContainer mod) {
+        try {
+            Object metadata = ((ModContainerImpl) mod).getMetadata();
+            Field mixins = metadata.getClass().getDeclaredField("mixins");
+            mixins.setAccessible(true);
+            mixins.set(metadata, new ArrayList<>());
+            Field entrypoints = metadata.getClass().getDeclaredField("entrypoints");
+            entrypoints.setAccessible(true);
+            entrypoints.set(metadata, new HashMap<>());
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException("Failed to drop the Fabric half of " + mod.getMetadata().getId(), e);
+        }
+    }
+
     static Attributes manifest(ZipFile zip) throws IOException {
         ZipEntry entry = zip.getEntry("META-INF/MANIFEST.MF");
         if (entry == null) return new Attributes();
@@ -112,13 +130,38 @@ public final class EarlyInit implements LanguageAdapter {
     }
 
     static boolean isForgeMod(ZipFile zip, Attributes manifest) {
+        if (zip.getEntry("mcmod.info") == null && zip.getEntry("META-INF/mods.toml") != null) return false;
         return manifest.getValue("TweakClass") != null || manifest.getValue("FMLCorePlugin") != null || manifest.getValue("MixinConfigs") != null || zip.getEntry("mcmod.info") != null;
     }
 
     static boolean supported(ZipFile zip, Attributes manifest) throws IOException {
-        if (ONECONFIG_V0_TWEAKER.equals(manifest.getValue("TweakClass")) && !FabricLoader.getInstance().isModLoaded("oneconfigv1")) return false;
-        return isForgeMod(zip, manifest) && (SUPPORTED.contains(manifest.getValue("TweakClass")) || SUPPORTED.contains(manifest.getValue("FMLCorePlugin"))
-                || mixinConfigs(manifest).stream().anyMatch(SUPPORTED::contains) || SUPPORTED.contains(modId(zip)));
+        if (fabricOwned(zip) || !isForgeMod(zip, manifest) || blacklisted(zip, manifest)) return false;
+        return !ONECONFIG_V0_TWEAKER.equals(manifest.getValue("TweakClass")) || FabricLoader.getInstance().isModLoaded("oneconfigv1");
+    }
+
+    static boolean fabricOwned(ZipFile zip) throws IOException {
+        ZipEntry entry = zip.getEntry("fabric.mod.json");
+        if (entry == null) return false;
+        JsonObject json;
+        try (InputStream in = zip.getInputStream(entry)) {
+            json = new JsonParser().parse(new String(in.readAllBytes(), StandardCharsets.UTF_8)).getAsJsonObject();
+        } catch (RuntimeException e) {
+            return true;
+        }
+        if (json.has("id") && FORGE_PREFERRED.contains(json.get("id").getAsString())) return false;
+        return json.has("entrypoints") && !json.getAsJsonObject("entrypoints").entrySet().isEmpty()
+                || json.has("mixins") && !json.getAsJsonArray("mixins").isEmpty();
+    }
+
+    private static boolean listed(String value) {
+        return value != null && BLACKLIST.contains(value);
+    }
+
+    static boolean blacklisted(ZipFile zip, Attributes manifest) throws IOException {
+        if (listed(manifest.getValue("TweakClass")) || listed(manifest.getValue("FMLCorePlugin"))
+                || mixinConfigs(manifest).stream().anyMatch(BLACKLIST::contains) || modIds(zip).stream().anyMatch(BLACKLIST::contains)) return true;
+        return zip.stream().map(ZipEntry::getName).filter(name -> name.endsWith(".class")).anyMatch(name -> BLACKLISTED_PACKAGES.stream().anyMatch(name::startsWith)
+                || name.startsWith("cc/polyfrost/") && !name.startsWith("cc/polyfrost/oneconfig"));
     }
 
     static boolean hasMixinConfig(String name) {
@@ -146,13 +189,15 @@ public final class EarlyInit implements LanguageAdapter {
         return false;
     }
 
-    static String modId(ZipFile zip) throws IOException {
+    static List<String> modIds(ZipFile zip) throws IOException {
+        List<String> ids = new ArrayList<>();
         ZipEntry entry = zip.getEntry("mcmod.info");
-        if (entry == null) return null;
+        if (entry == null) return ids;
         try (InputStream in = zip.getInputStream(entry)) {
             Matcher matcher = MODID.matcher(new String(in.readAllBytes(), StandardCharsets.UTF_8));
-            return matcher.find() ? matcher.group(1) : null;
+            while (matcher.find()) ids.add(matcher.group(1));
         }
+        return ids;
     }
 
     @Override
