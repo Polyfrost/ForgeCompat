@@ -59,6 +59,6 @@ public abstract class ScreenMixin {
 
     @Inject(method = "renderBackground(I)V", at = @At("TAIL"))
     private void forgecompat$backgroundDrawn(int offset, CallbackInfo ci) {
-        MinecraftForge.EVENT_BUS.post(new GuiScreenEvent.BackgroundDrawnEvent((Screen) (Object) this));
+        if (MinecraftForge.EVENT_BUS.hasListeners(GuiScreenEvent.BackgroundDrawnEvent.class)) MinecraftForge.EVENT_BUS.post(new GuiScreenEvent.BackgroundDrawnEvent((Screen) (Object) this));
     }
 }

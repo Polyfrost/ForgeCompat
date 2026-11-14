@@ -1,5 +1,6 @@
 package org.polyfrost.forgecompat.mixin;
 
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.living.player.PlayerEntity;
 import net.minecraftforge.common.ForgeHooks;
@@ -8,9 +9,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent;
 import org.polyfrost.forgecompat.RavenHooks;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Constant;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyConstant;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(PlayerEntity.class)
@@ -27,7 +26,7 @@ public class PlayerEntityMixin {
         return DEFAULT_EYE_HEIGHT;
     }
 
-    @ModifyConstant(method = "getEyeHeight", constant = @Constant(floatValue = DEFAULT_EYE_HEIGHT))
+    @ModifyExpressionValue(method = "getEyeHeight", at = @At(value = "CONSTANT", args = "floatValue=1.62F"))
     private float forgecompat$eyeHeight(float height) {
         return eyeHeight;
     }
@@ -37,7 +36,7 @@ public class PlayerEntityMixin {
         if (!ForgeHooks.onPlayerAttackTarget((PlayerEntity) (Object) this, target)) ci.cancel();
     }
 
-    @ModifyConstant(method = "attack(Lnet/minecraft/entity/Entity;)V", constant = @Constant(doubleValue = 0.6D))
+    @ModifyExpressionValue(method = "attack(Lnet/minecraft/entity/Entity;)V", at = @At(value = "CONSTANT", args = "doubleValue=0.6D"))
     private double forgecompat$ravenKeepSprint(double slowdown) {
         return RavenHooks.active() ? 1.0D : slowdown;
     }

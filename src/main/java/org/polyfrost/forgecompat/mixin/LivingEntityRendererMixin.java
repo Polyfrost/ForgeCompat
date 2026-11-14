@@ -13,13 +13,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class LivingEntityRendererMixin<T extends LivingEntity> {
     @Inject(method = "renderNameTag(Lnet/minecraft/entity/living/LivingEntity;DDD)V", at = @At("HEAD"), cancellable = true)
     private void forgecompat$specialsPre(LivingEntity entity, double x, double y, double z, CallbackInfo ci) {
-        if (org.polyfrost.forgecompat.Hooks.isSceneWorld(entity.world)) return;
+        if (!MinecraftForge.EVENT_BUS.hasListeners(RenderLivingEvent.Specials.Pre.class) || org.polyfrost.forgecompat.Hooks.isSceneWorld(entity.world)) return;
         if (MinecraftForge.EVENT_BUS.post(new RenderLivingEvent.Specials.Pre<>(entity, renderer(), x, y, z))) ci.cancel();
     }
 
     @Inject(method = "renderNameTag(Lnet/minecraft/entity/living/LivingEntity;DDD)V", at = @At("TAIL"))
     private void forgecompat$specialsPost(LivingEntity entity, double x, double y, double z, CallbackInfo ci) {
-        if (org.polyfrost.forgecompat.Hooks.isSceneWorld(entity.world)) return;
+        if (!MinecraftForge.EVENT_BUS.hasListeners(RenderLivingEvent.Specials.Post.class) || org.polyfrost.forgecompat.Hooks.isSceneWorld(entity.world)) return;
         MinecraftForge.EVENT_BUS.post(new RenderLivingEvent.Specials.Post<>(entity, renderer(), x, y, z));
     }
 

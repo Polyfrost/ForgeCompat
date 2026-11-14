@@ -1,6 +1,7 @@
 package org.polyfrost.forgecompat.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.Minecraft;
@@ -8,10 +9,10 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.platform.GlStateManager;
 import net.minecraft.entity.Entity;
+import net.minecraftforge.client.ForgeHooksClient;
 import net.minecraftforge.client.event.EntityViewRenderEvent;
 import org.polyfrost.forgecompat.Hooks;
 import org.spongepowered.asm.mixin.Unique;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
@@ -29,27 +30,27 @@ public abstract class GameRendererMixin {
 
     @WrapOperation(method = "render(FJ)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screen/Screen;render(IIF)V"))
     private void forgecompat$drawScreen(Screen screen, int mouseX, int mouseY, float partialTicks, Operation<Void> original) {
-        if (!MinecraftForge.EVENT_BUS.post(new GuiScreenEvent.DrawScreenEvent.Pre(screen, mouseX, mouseY, partialTicks))) {
+        if (!MinecraftForge.EVENT_BUS.hasListeners(GuiScreenEvent.DrawScreenEvent.Pre.class) || !MinecraftForge.EVENT_BUS.post(new GuiScreenEvent.DrawScreenEvent.Pre(screen, mouseX, mouseY, partialTicks))) {
             original.call(screen, mouseX, mouseY, partialTicks);
         }
-        MinecraftForge.EVENT_BUS.post(new GuiScreenEvent.DrawScreenEvent.Post(screen, mouseX, mouseY, partialTicks));
+        if (MinecraftForge.EVENT_BUS.hasListeners(GuiScreenEvent.DrawScreenEvent.Post.class)) MinecraftForge.EVENT_BUS.post(new GuiScreenEvent.DrawScreenEvent.Post(screen, mouseX, mouseY, partialTicks));
     }
 
     @Inject(method = "render(IFJ)V", at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiler/Profiler;swap(Ljava/lang/String;)V", args = "ldc=hand"))
     private void forgecompat$renderWorldLast(int pass, float tickDelta, long nanoTime, CallbackInfo ci) {
-        if (!org.polyfrost.forgecompat.Hooks.isSceneWorld(minecraft.world)) MinecraftForge.EVENT_BUS.post(new RenderWorldLastEvent(minecraft.worldRenderer, tickDelta));
+        if (!Hooks.isSceneWorld(minecraft.world)) ForgeHooksClient.dispatchRenderLast(minecraft.worldRenderer, tickDelta);
     }
 
-    @Inject(method = "renderItemInHand", at = @At("HEAD"), cancellable = true)
-    private void forgecompat$renderHand(float tickDelta, int pass, org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
-        if (!org.polyfrost.forgecompat.Hooks.isSceneWorld(minecraft.world) && net.minecraftforge.client.ForgeHooksClient.renderFirstPersonHand(minecraft.worldRenderer, tickDelta, pass)) ci.cancel();
+    @WrapWithCondition(method = "render(IFJ)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/GameRenderer;renderItemInHand(FI)V"))
+    private boolean forgecompat$renderHand(GameRenderer renderer, float tickDelta, int pass) {
+        return Hooks.isSceneWorld(minecraft.world) || !ForgeHooksClient.renderFirstPersonHand(minecraft.worldRenderer, tickDelta, pass);
     }
 
     @ModifyReturnValue(method = "getFov", at = @At("RETURN"))
-    private float forgecompat$fovModifier(float original, float tickDelta, boolean useFovSetting) {
-        if (minecraft.world == null || Hooks.isSceneWorld(minecraft.world)) return original;
+    private float forgecompat$fovModifier(float fov, float tickDelta, boolean useFovSetting) {
+        if (minecraft.world == null || !MinecraftForge.EVENT_BUS.hasListeners(EntityViewRenderEvent.FOVModifier.class) || Hooks.isSceneWorld(minecraft.world)) return fov;
         Entity entity = minecraft.getCamera();
-        EntityViewRenderEvent.FOVModifier event = new EntityViewRenderEvent.FOVModifier((GameRenderer) (Object) this, entity, Camera.getBlockInside(minecraft.world, entity, tickDelta), tickDelta, original);
+        EntityViewRenderEvent.FOVModifier event = new EntityViewRenderEvent.FOVModifier((GameRenderer) (Object) this, entity, Camera.getBlockInside(minecraft.world, entity, tickDelta), tickDelta, fov);
         MinecraftForge.EVENT_BUS.post(event);
         return event.getFOV();
     }
@@ -61,6 +62,11 @@ public abstract class GameRendererMixin {
 
     @WrapOperation(method = "transformCamera", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/platform/GlStateManager;rotatef(FFFF)V", ordinal = 8))
     private void forgecompat$pitch(float angle, float x, float y, float z, Operation<Void> original) {
+        // Deferring hides these calls from other mods' wrappers, so only do it when a Forge mod listens
+        if (!MinecraftForge.EVENT_BUS.hasListeners(EntityViewRenderEvent.CameraSetup.class)) {
+            original.call(angle, x, y, z);
+            return;
+        }
         forgecompat$pitch = angle;
         forgecompat$orient = true;
     }
@@ -70,6 +76,10 @@ public abstract class GameRendererMixin {
             @At(value = "INVOKE", target = "Lnet/minecraft/client/render/platform/GlStateManager;rotatef(FFFF)V", ordinal = 10)
     })
     private void forgecompat$yaw(float angle, float x, float y, float z, Operation<Void> original) {
+        if (!forgecompat$orient) {
+            original.call(angle, x, y, z);
+            return;
+        }
         forgecompat$yaw = angle;
     }
 
@@ -78,7 +88,7 @@ public abstract class GameRendererMixin {
         if (!forgecompat$orient) return;
         forgecompat$orient = false;
         float yaw = forgecompat$yaw, pitch = forgecompat$pitch, roll = 0;
-        if (minecraft.world != null && !Hooks.isSceneWorld(minecraft.world)) {
+        if (minecraft.world != null && MinecraftForge.EVENT_BUS.hasListeners(EntityViewRenderEvent.CameraSetup.class) && !Hooks.isSceneWorld(minecraft.world)) {
             Entity entity = minecraft.getCamera();
             EntityViewRenderEvent.CameraSetup event = new EntityViewRenderEvent.CameraSetup((GameRenderer) (Object) this, entity, Camera.getBlockInside(minecraft.world, entity, tickDelta), tickDelta, yaw, pitch, roll);
             MinecraftForge.EVENT_BUS.post(event);
