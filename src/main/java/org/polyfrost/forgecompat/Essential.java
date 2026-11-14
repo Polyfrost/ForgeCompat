@@ -66,6 +66,20 @@ final class Essential {
         }
     }
 
+    static void loadApi(Path outDir) throws IOException {
+        Path dir = outDir.resolve("essential-api");
+        Files.createDirectories(dir);
+        for (String name : List.of("universalcraft", "elementa", "vigilance", "essential-api")) {
+            Path out = dir.resolve(name + ".jar");
+            if (!Files.exists(out)) {
+                try (InputStream in = Essential.class.getResourceAsStream("/forgecompat/essential/" + name + ".jar")) {
+                    ForgeCompat.remapJar(ForgeCompat.readJar(ForgeCompat.readAll(in)), out, out, FileTime.fromMillis(0));
+                }
+            }
+            FabricLauncherBase.getLauncher().addToClassPath(out);
+        }
+    }
+
     private static boolean isCached(Path out, FileTime mtime) throws IOException {
         return Files.exists(out) && Files.getLastModifiedTime(out).toMillis() == mtime.toMillis();
     }

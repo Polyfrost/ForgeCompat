@@ -39,7 +39,7 @@ import org.apache.logging.log4j.LogManager;
 public final class EarlyInit implements LanguageAdapter {
     static final Set<String> BLACKLIST = Set.of(
             "skinlayers3d", "apec", "armorhud", "autogg_reimagined", "bedwar", "bettersprint", "chattriggers", "cpsdisplay",
-            "craftify", "crash_assistant", "custom-crosshair-mod", "Danker's Skyblock Mod", "dungeons_guide_loader",
+            "craftify", "crash_assistant", "custom-crosshair-mod", "customnpcs", "Danker's Skyblock Mod", "dungeons_guide_loader",
             "entityculling.mixins.json", "epiczoomer", "euphoria_patcher", "fancywarpmenu", "foamfix", "fpsmaster", "cloudmc",
             "fullbright", "great-scrollable-tooltips", "net.glease.healer.Healer", "heightlimitmod", "hotshirtlessmen",
             "hypixel_mod_api", "hytools", "i18nupdatemod.launchwrapper.LaunchWrapperTweaker", "idletweaks", "lomka",

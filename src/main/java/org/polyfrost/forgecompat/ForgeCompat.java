@@ -139,6 +139,7 @@ public class ForgeCompat implements PreLaunchEntrypoint {
         List<String> manifestMixinConfigs = new ArrayList<>();
         List<String> plugins = new ArrayList<>();
         List<Path> essentialJars = new ArrayList<>();
+        boolean essentialApi = false;
         try (DirectoryStream<Path> jars = Files.newDirectoryStream(FabricLoaderImpl.INSTANCE.getModsDirectory().toPath(), "*.jar")) {
             for (Path jar : jars) {
                 try (ZipFile zip = new ZipFile(jar.toFile())) {
@@ -166,6 +167,8 @@ public class ForgeCompat implements PreLaunchEntrypoint {
                         essentialJars.add(jar);
                         if (zip.getEntry("essential.mod.json") != null) continue;
                         tweaker = null;
+                    } else if (zip.getEntry(Essential.TWEAKER.replace('.', '/') + ".class") != null) {
+                        essentialApi = true;
                     }
                     if (cached) scanMods(zip, jar);
                     else remapJar(readJar(zip), jar, remapped, mtime);
@@ -185,6 +188,10 @@ public class ForgeCompat implements PreLaunchEntrypoint {
                 long start = System.nanoTime();
                 Essential.load(essentialJars, outDir);
                 LOGGER.info("Loaded Essential in {} ms", (System.nanoTime() - start) / 1_000_000);
+            } else if (essentialApi) {
+                long start = System.nanoTime();
+                Essential.loadApi(outDir);
+                LOGGER.info("Loaded Essential API shim in {} ms", (System.nanoTime() - start) / 1_000_000);
             }
         } catch (IOException e) {
             throw new RuntimeException("Failed to load Forge mods", e);

@@ -24,7 +24,13 @@ repositories {
     maven("https://repo.polyfrost.org/releases") {
         content { includeGroup("org.polyfrost.oneconfig") }
     }
+    maven("https://repo.essential.gg/repository/maven-public") {
+        content { includeGroup("gg.essential") }
+    }
 }
+
+val essentialApi = sourceSets.create("essentialApi")
+val essentialLibs: Configuration by configurations.creating { isTransitive = false }
 
 dependencies {
     minecraft("com.mojang:minecraft:${prop("minecraft_version")}")
@@ -34,11 +40,22 @@ dependencies {
     modImplementation("net.fabricmc:fabric-loader:${prop("loader_version")}")
     modImplementation("pl.tomgirl:pylon:${prop("pylon_version")}")
     implementation("java3d:vecmath:1.5.2")
-    for (module in listOf("config", "config-impl", "hud", "ui", "utils", "events")) {
+    for (module in listOf("config", "config-impl", "hud", "ui", "utils", "events", "notifications")) {
         compileOnly("org.polyfrost.oneconfig:$module:${prop("oneconfig_version")}") { isTransitive = false }
     }
     compileOnly("org.jetbrains.kotlin:kotlin-stdlib:2.4.20")
     include("java3d:vecmath:1.5.2")
+    "essentialApiCompileOnly"("org.jetbrains.kotlin:kotlin-stdlib:2.4.20")
+    "essentialApiCompileOnly"(files(sourceSets.main.get().java.classesDirectory))
+    essentialLibs("gg.essential:universalcraft-1.8.9-forge:543")
+    essentialLibs("gg.essential:elementa-1.8.9-forge:657")
+    essentialLibs("gg.essential:vigilance-1.8.9-forge:299")
+}
+
+val essentialApiJar = tasks.register<Jar>("essentialApiJar") {
+    archiveFileName = "essential-api.jar"
+    destinationDirectory = layout.buildDirectory.dir("essential")
+    from(essentialApi.output) { exclude("net/**") }
 }
 
 val stubs = file("src/stub").listFiles()!!.map { dir ->
@@ -82,5 +99,10 @@ tasks {
         inputs.properties(props)
         filesMatching("fabric.mod.json") { expand(props) }
         from(stubs) { into("META-INF/jars") }
+        from(essentialApiJar) { into("forgecompat/essential") }
+        from(essentialLibs) {
+            into("forgecompat/essential")
+            rename { it.substringBefore("-1.8.9") + ".jar" }
+        }
     }
 }
