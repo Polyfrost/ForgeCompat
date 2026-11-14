@@ -13,6 +13,7 @@ import net.fabricmc.loader.api.metadata.ModOrigin;
 
 public class Loader {
     private static final Loader INSTANCE = new Loader();
+    private static final MinecraftDummyContainer MINECRAFT = new MinecraftDummyContainer("1.8.9");
 
     public static Loader instance() {
         return INSTANCE;
@@ -24,6 +25,10 @@ public class Loader {
 
     public List<ModContainer> getModList() {
         return new ArrayList<>(getIndexedModList().values());
+    }
+
+    public MinecraftDummyContainer getMinecraftModContainer() {
+        return MINECRAFT;
     }
 
     public String getMCVersionString() {
