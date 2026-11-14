@@ -1,5 +1,6 @@
 package org.polyfrost.forgecompat.mixin;
 
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.Minecraft;
@@ -44,13 +45,13 @@ public abstract class GameRendererMixin {
         if (!org.polyfrost.forgecompat.Hooks.isSceneWorld(minecraft.world) && net.minecraftforge.client.ForgeHooksClient.renderFirstPersonHand(minecraft.worldRenderer, tickDelta, pass)) ci.cancel();
     }
 
-    @Inject(method = "getFov", at = @At("RETURN"), cancellable = true)
-    private void forgecompat$fovModifier(float tickDelta, boolean useFovSetting, CallbackInfoReturnable<Float> cir) {
-        if (minecraft.world == null || Hooks.isSceneWorld(minecraft.world)) return;
+    @ModifyReturnValue(method = "getFov", at = @At("RETURN"))
+    private float forgecompat$fovModifier(float original, float tickDelta, boolean useFovSetting) {
+        if (minecraft.world == null || Hooks.isSceneWorld(minecraft.world)) return original;
         Entity entity = minecraft.getCamera();
-        EntityViewRenderEvent.FOVModifier event = new EntityViewRenderEvent.FOVModifier((GameRenderer) (Object) this, entity, Camera.getBlockInside(minecraft.world, entity, tickDelta), tickDelta, cir.getReturnValueF());
+        EntityViewRenderEvent.FOVModifier event = new EntityViewRenderEvent.FOVModifier((GameRenderer) (Object) this, entity, Camera.getBlockInside(minecraft.world, entity, tickDelta), tickDelta, original);
         MinecraftForge.EVENT_BUS.post(event);
-        cir.setReturnValue(event.getFOV());
+        return event.getFOV();
     }
 
     @Unique
