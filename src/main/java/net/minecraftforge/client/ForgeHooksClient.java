@@ -30,10 +30,12 @@ public class ForgeHooksClient {
     }
 
     public static boolean renderFirstPersonHand(net.minecraft.client.render.world.WorldRenderer context, float partialTicks, int renderPass) {
-        return net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.client.event.RenderHandEvent(context, partialTicks, renderPass));
+        return net.minecraftforge.common.MinecraftForge.EVENT_BUS.hasListeners(net.minecraftforge.client.event.RenderHandEvent.class)
+                && net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.client.event.RenderHandEvent(context, partialTicks, renderPass));
     }
 
     public static void dispatchRenderLast(net.minecraft.client.render.world.WorldRenderer context, float partialTicks) {
-        net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.client.event.RenderWorldLastEvent(context, partialTicks));
+        if (net.minecraftforge.common.MinecraftForge.EVENT_BUS.hasListeners(net.minecraftforge.client.event.RenderWorldLastEvent.class))
+            net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.client.event.RenderWorldLastEvent(context, partialTicks));
     }
 }

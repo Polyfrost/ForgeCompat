@@ -3,10 +3,15 @@ package net.minecraftforge.fml.common.eventhandler;
 import java.lang.reflect.Method;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class EventBus {
+    private static final Listener[] NONE = new Listener[0];
     private final List<Listener> listeners = new CopyOnWriteArrayList<>();
+    // Replaced, not cleared, after every change so a lookup racing a register can't store a stale array in the live map
+    private volatile Map<Class<?>, Listener[]> byType = new ConcurrentHashMap<>();
 
     public void register(Object target) {
         Method[] methods;
@@ -23,6 +28,7 @@ public class EventBus {
             }
         }
         listeners.sort(Comparator.comparing(listener -> listener.subscribe.priority()));
+        byType = new ConcurrentHashMap<>();
     }
 
     private static Method[] declaredMethods(Class<?> type) {
@@ -39,11 +45,24 @@ public class EventBus {
 
     public void unregister(Object target) {
         listeners.removeIf(listener -> listener.target == target);
+        byType = new ConcurrentHashMap<>();
+    }
+
+    /** Lets hot call sites skip building an event nobody receives. */
+    public boolean hasListeners(Class<? extends Event> type) {
+        return listeners(type).length != 0;
+    }
+
+    private Listener[] listeners(Class<?> type) {
+        return byType.computeIfAbsent(type, t -> {
+            Listener[] matching = listeners.stream().filter(listener -> listener.type.isAssignableFrom(t)).toArray(Listener[]::new);
+            return matching.length == 0 ? NONE : matching;
+        });
     }
 
     public boolean post(Event event) {
-        for (Listener listener : listeners) {
-            if (listener.type.isInstance(event) && (!event.isCanceled() || listener.subscribe.receiveCanceled())) {
+        for (Listener listener : listeners(event.getClass())) {
+            if (!event.isCanceled() || listener.subscribe.receiveCanceled()) {
                 try {
                     listener.method.invoke(listener.target, event);
                 } catch (ReflectiveOperationException e) {
