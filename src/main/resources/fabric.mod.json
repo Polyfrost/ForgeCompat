@@ -12,7 +12,7 @@
     "preLaunch": ["org.polyfrost.forgecompat.ForgeCompat"]
   },
   "mixins": ["forgecompat.mixins.json"],
-  "jars": [{"file": "META-INF/jars/viafabric-stub.jar"}],
+  "jars": [{"file": "META-INF/jars/viafabric-stub.jar"}, {"file": "META-INF/jars/creamykeys-stub.jar"}],
   "depends": {
     "fabricloader": ">=${loader_version}",
     "minecraft": "1.8.9",

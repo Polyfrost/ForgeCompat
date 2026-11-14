@@ -41,10 +41,12 @@ dependencies {
     include("java3d:vecmath:1.5.2")
 }
 
-val viafabricStub by tasks.registering(Zip::class) {
-    archiveFileName = "viafabric-stub.jar"
-    destinationDirectory = layout.buildDirectory.dir("stub")
-    from("src/stub/viafabric")
+val stubs = file("src/stub").listFiles()!!.map { dir ->
+    tasks.register<Zip>("${dir.name}Stub") {
+        archiveFileName = "${dir.name}-stub.jar"
+        destinationDirectory = layout.buildDirectory.dir("stub")
+        from(dir)
+    }
 }
 
 loom {
@@ -57,7 +59,7 @@ loom {
     }
     runConfigs.named("client") {
         programArgs("--uuid", "00000000000000000000000000000000")
-        vmArg("-Dfabric.addMods=" + layout.buildDirectory.file("stub/viafabric-stub.jar").get().asFile.path)
+        vmArg("-Dfabric.addMods=" + stubs.joinToString(File.pathSeparator) { it.get().archiveFile.get().asFile.path })
     }
 }
 
@@ -73,12 +75,12 @@ tasks {
         options.encoding = "UTF-8"
     }
 
-    named("runClient") { dependsOn(viafabricStub) }
+    named("runClient") { dependsOn(stubs) }
 
     processResources {
         val props = mapOf("version" to project.version, "loader_version" to prop("loader_version"))
         inputs.properties(props)
         filesMatching("fabric.mod.json") { expand(props) }
-        from(viafabricStub) { into("META-INF/jars") }
+        from(stubs) { into("META-INF/jars") }
     }
 }
