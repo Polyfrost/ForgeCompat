@@ -2,6 +2,8 @@ package cc.polyfrost.oneconfig.utils.hypixel;
 
 import org.polyfrost.oneconfig.api.hypixel.v1.HypixelUtils;
 
+import java.util.Optional;
+
 public class LocrawUtil {
     public static final LocrawUtil INSTANCE = new LocrawUtil();
 
@@ -21,7 +23,7 @@ public class LocrawUtil {
 
     private static String serverType(HypixelUtils.Location location) {
         try {
-            return ((java.util.Optional<?>) location.getClass().getMethod("getServerType").invoke(location)).map(Object::toString).orElse("");
+            return ((Optional<?>) location.getClass().getMethod("getServerType").invoke(location)).map(Object::toString).orElse("");
         } catch (ReflectiveOperationException e) {
             return "";
         }

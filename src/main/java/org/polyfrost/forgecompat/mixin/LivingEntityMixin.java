@@ -1,39 +1,41 @@
 package org.polyfrost.forgecompat.mixin;
 
+import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.living.LivingEntity;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.entity.living.LivingAttackEvent;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
+import org.polyfrost.forgecompat.Hooks;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraftforge.event.entity.living.LivingAttackEvent;
 
 @Mixin(LivingEntity.class)
 public class LivingEntityMixin {
     @Inject(method = "tick", at = @At("HEAD"), cancellable = true)
     private void forgecompat$livingUpdate(CallbackInfo ci) {
-        if (org.polyfrost.forgecompat.Hooks.isSceneWorld(((LivingEntity) (Object) this).world)) return;
+        if (Hooks.isSceneWorld(((LivingEntity) (Object) this).world)) return;
         if (MinecraftForge.EVENT_BUS.post(new LivingEvent.LivingUpdateEvent((LivingEntity) (Object) this))) ci.cancel();
     }
 
     @Inject(method = "jump", at = @At("TAIL"))
     private void forgecompat$jump(CallbackInfo ci) {
-        if (org.polyfrost.forgecompat.Hooks.isSceneWorld(((LivingEntity) (Object) this).world)) return;
+        if (Hooks.isSceneWorld(((LivingEntity) (Object) this).world)) return;
         MinecraftForge.EVENT_BUS.post(new LivingEvent.LivingJumpEvent((LivingEntity) (Object) this));
     }
 
     @Inject(method = "die", at = @At("HEAD"), cancellable = true)
-    private void forgecompat$death(net.minecraft.entity.damage.DamageSource source, CallbackInfo ci) {
-        if (org.polyfrost.forgecompat.Hooks.isSceneWorld(((LivingEntity) (Object) this).world)) return;
-        if (MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent((LivingEntity) (Object) this, source))) ci.cancel();
+    private void forgecompat$death(DamageSource source, CallbackInfo ci) {
+        if (Hooks.isSceneWorld(((LivingEntity) (Object) this).world)) return;
+        if (MinecraftForge.EVENT_BUS.post(new LivingDeathEvent((LivingEntity) (Object) this, source))) ci.cancel();
     }
 
     @Inject(method = "takeDamage", at = @At("HEAD"), cancellable = true)
     private void forgecompat$attacked(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
-        if (org.polyfrost.forgecompat.Hooks.isSceneWorld(((LivingEntity) (Object) this).world)) return;
+        if (Hooks.isSceneWorld(((LivingEntity) (Object) this).world)) return;
         if (MinecraftForge.EVENT_BUS.post(new LivingAttackEvent((LivingEntity) (Object) this, source, amount))) cir.setReturnValue(false);
     }
 }

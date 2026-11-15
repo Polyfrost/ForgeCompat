@@ -1,12 +1,14 @@
 package org.polyfrost.forgecompat.mixin;
 
 import net.minecraft.entity.Entity;
-import org.polyfrost.forgecompat.RavenHooks;
 import net.minecraft.nbt.NbtCompound;
-import org.spongepowered.asm.mixin.Unique;
+import org.polyfrost.forgecompat.RavenHooks;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
+
+import java.util.UUID;
 
 @Mixin(Entity.class)
 public class EntityMixin {
@@ -33,7 +35,7 @@ public class EntityMixin {
         return true;
     }
 
-    public java.util.UUID getPersistentID() {
+    public UUID getPersistentID() {
         return ((Entity) (Object) this).getUuid();
     }
 }

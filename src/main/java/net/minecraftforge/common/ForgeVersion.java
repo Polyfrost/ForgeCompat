@@ -1,5 +1,11 @@
 package net.minecraftforge.common;
 
+import net.minecraftforge.fml.common.ModContainer;
+import net.minecraftforge.fml.common.versioning.ComparableVersion;
+
+import java.util.Collections;
+import java.util.Map;
+
 public class ForgeVersion {
     public static final String mcVersion = "1.8.9";
 
@@ -31,8 +37,8 @@ public class ForgeVersion {
     public static void startVersionCheck() {
     }
 
-    public static CheckResult getResult(net.minecraftforge.fml.common.ModContainer mod) {
-        return new CheckResult(Status.UP_TO_DATE, null, java.util.Collections.emptyMap(), null);
+    public static CheckResult getResult(ModContainer mod) {
+        return new CheckResult(Status.UP_TO_DATE, null, Collections.emptyMap(), null);
     }
 
     public enum Status {
@@ -41,11 +47,11 @@ public class ForgeVersion {
 
     public static class CheckResult {
         public final Status status;
-        public final net.minecraftforge.fml.common.versioning.ComparableVersion target;
-        public final java.util.Map<net.minecraftforge.fml.common.versioning.ComparableVersion, String> changes;
+        public final ComparableVersion target;
+        public final Map<ComparableVersion, String> changes;
         public final String url;
 
-        CheckResult(Status status, net.minecraftforge.fml.common.versioning.ComparableVersion target, java.util.Map<net.minecraftforge.fml.common.versioning.ComparableVersion, String> changes, String url) {
+        CheckResult(Status status, ComparableVersion target, Map<ComparableVersion, String> changes, String url) {
             this.status = status;
             this.target = target;
             this.changes = changes;

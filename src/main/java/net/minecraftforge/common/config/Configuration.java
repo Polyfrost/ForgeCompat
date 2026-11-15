@@ -5,10 +5,12 @@
 
 package net.minecraftforge.common.config;
 
-import static net.minecraftforge.common.config.Property.Type.BOOLEAN;
-import static net.minecraftforge.common.config.Property.Type.DOUBLE;
-import static net.minecraftforge.common.config.Property.Type.INTEGER;
-import static net.minecraftforge.common.config.Property.Type.STRING;
+import com.google.common.base.CharMatcher;
+import com.google.common.collect.ImmutableSet;
+import net.minecraftforge.fml.client.config.GuiConfigEntries.IConfigEntry;
+import net.minecraftforge.fml.common.FMLLog;
+import net.minecraftforge.fml.common.Loader;
+import net.minecraftforge.fml.relauncher.FMLInjectionData;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -33,13 +35,10 @@ import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.google.common.base.CharMatcher;
-import com.google.common.collect.ImmutableSet;
-
-import net.minecraftforge.fml.client.config.GuiConfigEntries.IConfigEntry;
-import net.minecraftforge.fml.common.FMLLog;
-import net.minecraftforge.fml.common.Loader;
-import net.minecraftforge.fml.relauncher.FMLInjectionData;
+import static net.minecraftforge.common.config.Property.Type.BOOLEAN;
+import static net.minecraftforge.common.config.Property.Type.DOUBLE;
+import static net.minecraftforge.common.config.Property.Type.INTEGER;
+import static net.minecraftforge.common.config.Property.Type.STRING;
 
 /**
  * This class offers advanced configurations capabilities, allowing to provide

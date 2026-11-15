@@ -2,8 +2,9 @@ package net.minecraftforge.fml.common.registry;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.living.effect.StatusEffect;
-import net.minecraft.util.registry.IdRegistry;
 import net.minecraft.item.Item;
+import net.minecraft.resource.Identifier;
+import net.minecraft.util.registry.IdRegistry;
 
 public class GameData {
     private static FMLControlledNamespacedRegistry<Block> blocks;
@@ -22,8 +23,8 @@ public class GameData {
 
     public static FMLControlledNamespacedRegistry<StatusEffect> getPotionRegistry() {
         if (potions == null) {
-            IdRegistry<net.minecraft.resource.Identifier, StatusEffect> registry = new IdRegistry<>();
-            for (net.minecraft.resource.Identifier key : StatusEffect.getKeys()) {
+            IdRegistry<Identifier, StatusEffect> registry = new IdRegistry<>();
+            for (Identifier key : StatusEffect.getKeys()) {
                 StatusEffect effect = StatusEffect.get(key.toString());
                 if (effect != null) registry.register(effect.id, key, effect);
             }

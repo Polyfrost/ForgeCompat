@@ -1,20 +1,14 @@
 package org.polyfrost.forgecompat;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-
 import cc.polyfrost.oneconfig.config.annotations.Dropdown;
 import cc.polyfrost.oneconfig.config.annotations.DualOption;
 import cc.polyfrost.oneconfig.config.annotations.Exclude;
 import cc.polyfrost.oneconfig.config.annotations.HUD;
 import cc.polyfrost.oneconfig.config.annotations.Switch;
+import cc.polyfrost.oneconfig.config.core.OneKeyBind;
 import cc.polyfrost.oneconfig.config.data.ModType;
 import cc.polyfrost.oneconfig.hud.TextHud;
+import net.minecraft.client.Minecraft;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -30,16 +24,27 @@ import org.polyfrost.oneconfig.api.hud.v1.events.HudEditorToggleEvent;
 import org.polyfrost.oneconfig.api.ui.v1.OneConfigUI;
 import org.polyfrost.oneconfig.api.ui.v1.page.OneConfigPages;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
 public final class LegacyOneConfig {
     private static final List<TextHud> HUDS = new CopyOnWriteArrayList<>();
     private static volatile boolean editing;
     private static boolean listening;
-    private static final java.util.Map<cc.polyfrost.oneconfig.config.core.OneKeyBind, Boolean> KEYBINDS = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<OneKeyBind, Boolean> KEYBINDS = new ConcurrentHashMap<>();
 
     private LegacyOneConfig() {
     }
 
-    public static void registerKeyBind(cc.polyfrost.oneconfig.config.core.OneKeyBind keyBind) {
+    public static void registerKeyBind(OneKeyBind keyBind) {
         listen();
         KEYBINDS.put(keyBind, false);
     }
@@ -64,8 +69,8 @@ public final class LegacyOneConfig {
         public void onTick(TickEvent.ClientTickEvent event) {
             if (event.phase != TickEvent.Phase.END) return;
             for (TextHud hud : HUDS) hud.forgecompat$tick(editing);
-            boolean inGame = net.minecraft.client.Minecraft.getInstance().screen == null;
-            for (java.util.Map.Entry<cc.polyfrost.oneconfig.config.core.OneKeyBind, Boolean> entry : KEYBINDS.entrySet()) {
+            boolean inGame = Minecraft.getInstance().screen == null;
+            for (Map.Entry<OneKeyBind, Boolean> entry : KEYBINDS.entrySet()) {
                 boolean active = inGame && entry.getKey().isActive();
                 if (active && !entry.getValue()) entry.getKey().run();
                 entry.setValue(active);
@@ -97,7 +102,7 @@ public final class LegacyOneConfig {
         }
 
         public void hideIf(String option, Supplier<Boolean> condition) {
-            java.util.function.BooleanSupplier hidden = () -> Boolean.TRUE.equals(condition.get());
+            BooleanSupplier hidden = () -> Boolean.TRUE.equals(condition.get());
             super.hideIf(option, hidden);
         }
 

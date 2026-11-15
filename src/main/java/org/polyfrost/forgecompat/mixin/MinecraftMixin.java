@@ -1,18 +1,15 @@
 package org.polyfrost.forgecompat.mixin;
 
-import java.nio.file.Path;
-import java.util.List;
-
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.ClientPlayerInteractionManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.TickTimer;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.resource.pack.ResourcePack;
-import net.minecraft.client.resource.pack.ZippedResourcePack;
 import net.minecraft.client.entity.living.player.LocalClientPlayerEntity;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.render.GameRenderer;
+import net.minecraft.client.resource.pack.ResourcePack;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
@@ -26,8 +23,9 @@ import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.gameevent.InputEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
-import net.minecraft.client.render.GameRenderer;
 import org.polyfrost.forgecompat.ForgeCompat;
+import org.polyfrost.forgecompat.Hooks;
+import org.polyfrost.forgecompat.ModResourcePack;
 import org.polyfrost.forgecompat.RavenHooks;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -36,6 +34,9 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+import java.nio.file.Path;
+import java.util.List;
 
 @Mixin(Minecraft.class)
 public class MinecraftMixin {
@@ -51,7 +52,7 @@ public class MinecraftMixin {
 
     @Inject(method = "init", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;reloadResources()V", ordinal = 0))
     private void forgecompat$modResources(CallbackInfo ci) {
-        for (Path jar : ForgeCompat.RESOURCE_JARS) requiredResourcePacks.add(new org.polyfrost.forgecompat.ModResourcePack(jar.toFile()));
+        for (Path jar : ForgeCompat.RESOURCE_JARS) requiredResourcePacks.add(new ModResourcePack(jar.toFile()));
     }
 
     @WrapMethod(method = "openScreen")
@@ -62,14 +63,14 @@ public class MinecraftMixin {
 
     @Inject(method = "setWorld(Lnet/minecraft/client/world/ClientWorld;Ljava/lang/String;)V", at = @At("HEAD"))
     private void forgecompat$worldUnload(ClientWorld world, String message, CallbackInfo ci) {
-        ClientWorld previous = org.polyfrost.forgecompat.Hooks.realWorld();
+        ClientWorld previous = Hooks.realWorld();
         if (previous != null && previous != world) MinecraftForge.EVENT_BUS.post(new WorldEvent.Unload(previous));
     }
 
     @Inject(method = "setWorld(Lnet/minecraft/client/world/ClientWorld;Ljava/lang/String;)V", at = @At("TAIL"))
     private void forgecompat$worldLoad(ClientWorld world, String message, CallbackInfo ci) {
-        ClientWorld previous = org.polyfrost.forgecompat.Hooks.realWorld();
-        org.polyfrost.forgecompat.Hooks.setRealWorld(world);
+        ClientWorld previous = Hooks.realWorld();
+        Hooks.setRealWorld(world);
         if (world != null && world != previous) MinecraftForge.EVENT_BUS.post(new WorldEvent.Load(world));
     }
 

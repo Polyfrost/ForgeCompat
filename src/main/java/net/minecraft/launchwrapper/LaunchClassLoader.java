@@ -1,5 +1,8 @@
 package net.minecraft.launchwrapper;
 
+import net.fabricmc.loader.impl.launch.FabricLauncherBase;
+import org.polyfrost.forgecompat.ForgeCompat;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
@@ -11,9 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
-import net.fabricmc.loader.impl.launch.FabricLauncherBase;
-import org.polyfrost.forgecompat.ForgeCompat;
 
 public class LaunchClassLoader extends URLClassLoader {
     private final List<URL> sources = new ArrayList<>();

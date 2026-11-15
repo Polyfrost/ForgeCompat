@@ -1,29 +1,31 @@
 package net.minecraftforge.fml.common;
 
+import com.google.common.base.CharMatcher;
+import net.minecraft.client.Minecraft;
+import net.minecraft.entity.living.player.PlayerEntity;
+import net.minecraft.inventory.Inventory;
+import net.minecraft.item.ItemStack;
+import net.minecraft.network.handler.PacketHandler;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.text.Formatting;
+import net.minecraft.util.BlockableEventLoop;
+import net.minecraft.util.crash.CrashReport;
+import net.minecraft.util.crash.CrashReportCategory;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.client.FMLClientHandler;
+import net.minecraftforge.fml.common.eventhandler.EventBus;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
+import net.minecraftforge.fml.relauncher.Side;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.Logger;
+
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-
-import com.google.common.base.CharMatcher;
-
-import net.minecraft.client.Minecraft;
-import net.minecraft.network.handler.PacketHandler;
-import net.minecraft.util.BlockableEventLoop;
-import net.minecraft.text.Formatting;
-import net.minecraft.util.crash.CrashReport;
-import net.minecraft.util.crash.CrashReportCategory;
-import net.minecraftforge.fml.client.FMLClientHandler;
-import org.apache.logging.log4j.Logger;
-import net.minecraft.entity.living.player.PlayerEntity;
-import net.minecraft.inventory.Inventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.server.MinecraftServer;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
-import net.minecraftforge.fml.common.eventhandler.EventBus;
-import net.minecraftforge.fml.relauncher.Side;
 
 public class FMLCommonHandler {
     private static final FMLCommonHandler INSTANCE = new FMLCommonHandler();
@@ -55,13 +57,13 @@ public class FMLCommonHandler {
         return "fml,forge";
     }
 
-    private java.util.List<String> brandings;
+    private List<String> brandings;
 
     public void computeBranding() {
-        if (brandings == null) brandings = new java.util.ArrayList<>(java.util.Arrays.asList("Minecraft 1.8.9", "Forge Compat", "Forge 11.15.1.2318"));
+        if (brandings == null) brandings = new ArrayList<>(Arrays.asList("Minecraft 1.8.9", "Forge Compat", "Forge 11.15.1.2318"));
     }
 
-    public java.util.List<String> getBrandings(boolean includeMC) {
+    public List<String> getBrandings(boolean includeMC) {
         computeBranding();
         return includeMC ? brandings : brandings.subList(1, brandings.size());
     }
@@ -101,7 +103,7 @@ public class FMLCommonHandler {
     }
 
     public void raiseException(Throwable exception, String message, boolean stopGame) {
-        FMLLog.log(org.apache.logging.log4j.Level.ERROR, exception, "Something raised an exception. The message was '%s'. 'stopGame' is %b", message, stopGame);
+        FMLLog.log(Level.ERROR, exception, "Something raised an exception. The message was '%s'. 'stopGame' is %b", message, stopGame);
         if (stopGame) FMLClientHandler.instance().haltGame(message, exception);
     }
 

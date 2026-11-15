@@ -1,38 +1,5 @@
 package org.polyfrost.forgecompat;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.Proxy;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.nio.file.attribute.FileTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.jar.Attributes;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-import java.util.zip.ZipInputStream;
-import java.util.zip.ZipOutputStream;
-
 import com.google.common.collect.ImmutableMap;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.entrypoint.PreLaunchEntrypoint;
@@ -46,12 +13,13 @@ import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.client.IModGuiFactory;
 import net.minecraftforge.fml.common.Loader;
+import net.minecraftforge.fml.common.LoaderState;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.ModContainer;
 import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.discovery.ASMDataTable;
-import net.minecraftforge.fml.common.LoaderState;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLInterModComms;
 import net.minecraftforge.fml.common.event.FMLLoadCompleteEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
@@ -85,6 +53,42 @@ import org.spongepowered.asm.mixin.Mixins;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfig;
 import org.spongepowered.asm.mixin.transformer.Config;
 import org.spongepowered.asm.mixin.transformer.IMixinTransformer;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Proxy;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.FileTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.jar.Attributes;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
 /**
  * Finds Forge mods in the mods folder, remaps them to intermediary, puts them on the game class
@@ -427,7 +431,7 @@ public class ForgeCompat implements PreLaunchEntrypoint {
         });
         LOADED_MODS.putAll(mods);
         loaderState = LoaderState.POSTINITIALIZATION;
-        fireAll(new net.minecraftforge.fml.common.event.FMLInterModComms.IMCEvent());
+        fireAll(new FMLInterModComms.IMCEvent());
         fireAll(new FMLPostInitializationEvent());
         loaderState = LoaderState.AVAILABLE;
         fireAll(new FMLLoadCompleteEvent());
@@ -505,7 +509,7 @@ public class ForgeCompat implements PreLaunchEntrypoint {
             }
         } catch (NoSuchFieldException ignored) {
         }
-        java.lang.reflect.Constructor<?> constructor = type.getDeclaredConstructor();
+        Constructor<?> constructor = type.getDeclaredConstructor();
         constructor.setAccessible(true);
         return constructor.newInstance();
     }
@@ -639,7 +643,7 @@ public class ForgeCompat implements PreLaunchEntrypoint {
         }
         Path tmp = out.resolveSibling(out.getFileName() + ".tmp");
         try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(tmp))) {
-            Set<String> dirs = new java.util.TreeSet<>();
+            Set<String> dirs = new TreeSet<>();
             for (String name : entries.keySet()) {
                 for (int i = name.indexOf('/'); i > 0; i = name.indexOf('/', i + 1)) dirs.add(name.substring(0, i + 1));
             }
@@ -752,7 +756,7 @@ public class ForgeCompat implements PreLaunchEntrypoint {
 
     private static ClassVisitor dropDuplicateMethods(ClassVisitor next) {
         return new ClassVisitor(Opcodes.ASM9, next) {
-            private final Set<String> seen = new java.util.HashSet<>();
+            private final Set<String> seen = new HashSet<>();
 
             @Override
             public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {

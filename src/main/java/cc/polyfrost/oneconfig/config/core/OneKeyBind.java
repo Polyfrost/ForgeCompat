@@ -1,8 +1,8 @@
 package cc.polyfrost.oneconfig.config.core;
 
-import java.util.ArrayList;
-
 import org.lwjgl.input.Keyboard;
+
+import java.util.ArrayList;
 
 public class OneKeyBind {
     protected final ArrayList<Integer> keyBinds = new ArrayList<>();

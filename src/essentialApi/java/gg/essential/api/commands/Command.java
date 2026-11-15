@@ -1,11 +1,11 @@
 package gg.essential.api.commands;
 
+import kotlin.jvm.internal.DefaultConstructorMarker;
+import org.polyfrost.forgecompat.EssentialApi;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
-
-import kotlin.jvm.internal.DefaultConstructorMarker;
-import org.polyfrost.forgecompat.EssentialApi;
 
 public abstract class Command {
     private final String name;

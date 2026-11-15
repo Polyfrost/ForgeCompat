@@ -5,16 +5,18 @@ import net.minecraft.inventory.CraftingInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 
+import java.util.ArrayList;
+
 public class ShapelessOreRecipe implements Recipe {
     protected ItemStack output;
-    protected java.util.ArrayList<Object> input;
+    protected ArrayList<Object> input;
 
-    public ShapelessOreRecipe(ItemStack output, java.util.ArrayList<Object> input) {
+    public ShapelessOreRecipe(ItemStack output, ArrayList<Object> input) {
         this.output = output;
         this.input = input;
     }
 
-    public java.util.ArrayList<Object> getInput() {
+    public ArrayList<Object> getInput() {
         return input;
     }
 

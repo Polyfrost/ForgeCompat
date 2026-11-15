@@ -1,10 +1,5 @@
 package cc.polyfrost.oneconfig.events;
 
-import java.lang.reflect.Method;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.CopyOnWriteArrayList;
-
 import cc.polyfrost.oneconfig.events.event.LocrawEvent;
 import cc.polyfrost.oneconfig.events.event.Stage;
 import cc.polyfrost.oneconfig.events.event.Subscribe;
@@ -14,7 +9,14 @@ import cc.polyfrost.oneconfig.utils.hypixel.LocrawInfo;
 import cc.polyfrost.oneconfig.utils.hypixel.LocrawUtil;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent.ClientTickEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent.Phase;
 import org.apache.logging.log4j.LogManager;
+
+import java.lang.reflect.Method;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public final class EventManager {
     public static final EventManager INSTANCE = new EventManager();
@@ -59,8 +61,8 @@ public final class EventManager {
 
     public final class Hook {
         @SubscribeEvent
-        public void onTick(net.minecraftforge.fml.common.gameevent.TickEvent.ClientTickEvent event) {
-            Stage stage = event.phase == net.minecraftforge.fml.common.gameevent.TickEvent.Phase.START ? Stage.START : Stage.END;
+        public void onTick(ClientTickEvent event) {
+            Stage stage = event.phase == Phase.START ? Stage.START : Stage.END;
             post(new TickEvent(stage));
             if (stage != Stage.END || ++ticks % 20 != 0 || !HypixelUtils.INSTANCE.isHypixel()) return;
             LocrawInfo info = LocrawUtil.INSTANCE.getLocrawInfo();

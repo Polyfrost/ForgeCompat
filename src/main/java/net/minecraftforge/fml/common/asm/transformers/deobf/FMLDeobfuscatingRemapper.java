@@ -1,11 +1,11 @@
 package net.minecraftforge.fml.common.asm.transformers.deobf;
 
-import java.io.File;
-import java.util.Set;
-
 import net.minecraft.launchwrapper.LaunchClassLoader;
 import org.objectweb.asm.commons.Remapper;
 import org.polyfrost.forgecompat.Hooks;
+
+import java.io.File;
+import java.util.Set;
 
 public class FMLDeobfuscatingRemapper extends Remapper {
     public static final FMLDeobfuscatingRemapper INSTANCE = new FMLDeobfuscatingRemapper();

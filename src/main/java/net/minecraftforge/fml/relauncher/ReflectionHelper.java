@@ -1,9 +1,9 @@
 package net.minecraftforge.fml.relauncher;
 
+import org.polyfrost.forgecompat.Hooks;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-
-import org.polyfrost.forgecompat.Hooks;
 
 public class ReflectionHelper {
     public static Field findField(Class<?> owner, String... names) {

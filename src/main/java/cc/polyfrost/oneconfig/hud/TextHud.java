@@ -1,11 +1,11 @@
 package cc.polyfrost.oneconfig.hud;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.render.TextRenderer;
 import net.minecraft.client.render.platform.GlStateManager;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public abstract class TextHud {
     public boolean enabled;

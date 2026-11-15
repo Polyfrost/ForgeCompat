@@ -1,7 +1,5 @@
 package net.minecraftforge.fml.common.event;
 
-import java.util.List;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ListMultimap;
 import net.minecraft.block.Block;
@@ -9,6 +7,8 @@ import net.minecraft.item.Item;
 import net.minecraft.resource.Identifier;
 import net.minecraftforge.fml.common.ModContainer;
 import net.minecraftforge.fml.common.registry.GameRegistry;
+
+import java.util.List;
 
 public class FMLMissingMappingsEvent extends FMLEvent {
     private final ListMultimap<String, MissingMapping> missing;

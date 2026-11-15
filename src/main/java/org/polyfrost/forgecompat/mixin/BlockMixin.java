@@ -2,11 +2,11 @@ package org.polyfrost.forgecompat.mixin;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
+import net.minecraft.block.material.Material;
 import net.minecraft.block.state.BlockState;
 import net.minecraft.entity.living.LivingEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.WorldView;
-import net.minecraft.block.material.Material;
 import org.spongepowered.asm.mixin.Mixin;
 
 @Mixin(Block.class)

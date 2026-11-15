@@ -1,32 +1,33 @@
 package net.minecraftforge.fml.client;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.living.player.LocalClientPlayerEntity;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.menu.GameMenuScreen;
-import net.minecraft.client.gui.screen.menu.world.SelectWorldScreen;
-import net.minecraft.client.resource.pack.ResourcePack;
 import net.minecraft.client.gui.screen.menu.multiplayer.ConnectScreen;
+import net.minecraft.client.gui.screen.menu.world.SelectWorldScreen;
 import net.minecraft.client.options.ServerListEntry;
+import net.minecraft.client.resource.pack.ResourcePack;
 import net.minecraft.client.world.ClientWorld;
+import net.minecraft.network.Connection;
 import net.minecraft.network.handler.PacketHandler;
 import net.minecraft.server.network.handler.ServerHandshakePacketHandler;
 import net.minecraft.server.network.handler.ServerLoginPacketHandler;
 import net.minecraft.server.network.handler.ServerPlayPacketHandler;
 import net.minecraft.server.network.handler.ServerQueryPacketHandler;
 import net.minecraft.util.BlockableEventLoop;
+import net.minecraftforge.client.GuiIngameForge;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.FMLLog;
 import net.minecraftforge.fml.common.ModContainer;
-import net.minecraftforge.client.GuiIngameForge;
 import org.polyfrost.forgecompat.ForgeCompat;
 import org.polyfrost.forgecompat.Hooks;
 import org.polyfrost.forgecompat.ModResourcePack;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class FMLClientHandler {
     private static final FMLClientHandler INSTANCE = new FMLClientHandler();
@@ -57,12 +58,12 @@ public class FMLClientHandler {
         return false;
     }
 
-    public net.minecraft.network.Connection getClientToServerNetworkManager() {
+    public Connection getClientToServerNetworkManager() {
         return getClient().getNetworkHandler() == null ? null : getClient().getNetworkHandler().getConnection();
     }
 
     public void showGuiScreen(Object screen) {
-        getClient().openScreen((net.minecraft.client.gui.screen.Screen) screen);
+        getClient().openScreen((Screen) screen);
     }
 
     public void connectToServer(Screen guiMultiplayer, ServerListEntry serverEntry) {

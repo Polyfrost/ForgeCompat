@@ -5,15 +5,17 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GameGui;
+import net.minecraft.client.gui.GuiElement;
 import net.minecraft.client.gui.chat.ChatGui;
 import net.minecraft.client.gui.overlay.DebugOverlay;
 import net.minecraft.client.gui.overlay.PlayerTabOverlay;
 import net.minecraft.client.gui.spectator.SpectatorGui;
+import net.minecraft.client.render.TextRenderer;
+import net.minecraft.client.render.Window;
 import net.minecraft.client.render.platform.GlStateManager;
 import net.minecraft.scoreboard.Scoreboard;
 import net.minecraft.scoreboard.ScoreboardObjective;
 import net.minecraftforge.client.GuiIngameForge;
-import net.minecraft.client.render.Window;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent.ElementType;
 import net.minecraftforge.common.MinecraftForge;
@@ -24,6 +26,8 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+import java.util.ArrayList;
 
 @Mixin(GameGui.class)
 public class GameGuiMixin {
@@ -144,16 +148,16 @@ public class GameGuiMixin {
 
     @Unique
     private void forgecompat$text(float tickDelta, Window window) {
-        java.util.ArrayList<String> left = new java.util.ArrayList<>();
-        java.util.ArrayList<String> right = new java.util.ArrayList<>();
+        ArrayList<String> left = new ArrayList<>();
+        ArrayList<String> right = new ArrayList<>();
         RenderGameOverlayEvent.Text event = new RenderGameOverlayEvent.Text(tickDelta, window, left, right);
         if (MinecraftForge.EVENT_BUS.post(event)) return;
-        net.minecraft.client.render.TextRenderer font = minecraft.textRenderer;
+        TextRenderer font = minecraft.textRenderer;
         boolean debug = minecraft.options.debugEnabled;
         int top = 2;
         for (String line : left) {
             if (line != null && !line.isEmpty()) {
-                if (debug) net.minecraft.client.gui.GuiElement.fill(1, top - 1, 2 + font.getWidth(line) + 1, top + font.fontHeight - 1, 0x90505050);
+                if (debug) GuiElement.fill(1, top - 1, 2 + font.getWidth(line) + 1, top + font.fontHeight - 1, 0x90505050);
                 font.drawWithShadow(line, 2, top, 0xE0E0E0);
             }
             top += font.fontHeight;
@@ -163,7 +167,7 @@ public class GameGuiMixin {
             if (line != null && !line.isEmpty()) {
                 int width = font.getWidth(line);
                 int x = window.getWidth() - 2 - width;
-                if (debug) net.minecraft.client.gui.GuiElement.fill(x - 1, top - 1, x + width + 1, top + font.fontHeight - 1, 0x90505050);
+                if (debug) GuiElement.fill(x - 1, top - 1, x + width + 1, top + font.fontHeight - 1, 0x90505050);
                 font.drawWithShadow(line, x, top, 0xE0E0E0);
             }
             top += font.fontHeight;

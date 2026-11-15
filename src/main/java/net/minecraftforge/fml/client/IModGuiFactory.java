@@ -1,11 +1,11 @@
 package net.minecraftforge.fml.client;
 
-import java.util.List;
-import java.util.Set;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiElement;
 import net.minecraft.client.gui.screen.Screen;
+
+import java.util.List;
+import java.util.Set;
 
 public interface IModGuiFactory {
     void initialize(Minecraft minecraft);

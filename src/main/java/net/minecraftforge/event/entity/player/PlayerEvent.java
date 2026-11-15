@@ -1,5 +1,6 @@
 package net.minecraftforge.event.entity.player;
 
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.living.player.PlayerEntity;
 import net.minecraftforge.event.entity.living.LivingEvent;
 
@@ -12,18 +13,18 @@ public class PlayerEvent extends LivingEvent {
     }
 
     public static class StartTracking extends PlayerEvent {
-        public final net.minecraft.entity.Entity target;
+        public final Entity target;
 
-        public StartTracking(PlayerEntity player, net.minecraft.entity.Entity target) {
+        public StartTracking(PlayerEntity player, Entity target) {
             super(player);
             this.target = target;
         }
     }
 
     public static class StopTracking extends PlayerEvent {
-        public final net.minecraft.entity.Entity target;
+        public final Entity target;
 
-        public StopTracking(PlayerEntity player, net.minecraft.entity.Entity target) {
+        public StopTracking(PlayerEntity player, Entity target) {
             super(player);
             this.target = target;
         }

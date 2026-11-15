@@ -1,10 +1,10 @@
 package net.minecraftforge.fml.common.registry;
 
-import java.util.Iterator;
-import java.util.Set;
-
 import net.minecraft.resource.Identifier;
 import net.minecraft.util.registry.IdRegistry;
+
+import java.util.Iterator;
+import java.util.Set;
 
 public class FMLControlledNamespacedRegistry<I> extends IdRegistry<Identifier, I> {
     private final IdRegistry<Identifier, I> delegate;

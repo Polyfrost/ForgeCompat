@@ -1,13 +1,16 @@
 package net.minecraftforge.fml.common.network;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
+import io.netty.channel.ChannelHandler;
 import net.minecraft.network.Connection;
 import net.minecraft.network.handler.PacketHandler;
 import net.minecraft.network.packet.s2c.play.CustomPayloadS2CPacket;
 import net.minecraftforge.fml.common.network.internal.FMLProxyPacket;
 import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper;
+import net.minecraftforge.fml.relauncher.Side;
+
+import java.util.EnumMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class NetworkRegistry {
     public static final NetworkRegistry INSTANCE = new NetworkRegistry();
@@ -18,15 +21,15 @@ public class NetworkRegistry {
         return new SimpleNetworkWrapper();
     }
 
-    public java.util.EnumMap<net.minecraftforge.fml.relauncher.Side, Object> newChannel(String name, io.netty.channel.ChannelHandler... handlers) {
-        return new java.util.EnumMap<>(net.minecraftforge.fml.relauncher.Side.class);
+    public EnumMap<Side, Object> newChannel(String name, ChannelHandler... handlers) {
+        return new EnumMap<>(Side.class);
     }
 
     public FMLEventChannel newEventDrivenChannel(String name) {
         return EVENT_CHANNELS.computeIfAbsent(name, FMLEventChannel::new);
     }
 
-    public boolean hasChannel(String name, net.minecraftforge.fml.relauncher.Side side) {
+    public boolean hasChannel(String name, Side side) {
         return EVENT_CHANNELS.containsKey(name);
     }
 

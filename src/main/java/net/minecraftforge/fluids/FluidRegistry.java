@@ -1,11 +1,11 @@
 package net.minecraftforge.fluids;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.resource.Identifier;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class FluidRegistry {
     public static final Fluid WATER = new Fluid("water", new Identifier("blocks/water_still"), new Identifier("blocks/water_flow")).setBlock(Blocks.WATER).setUnlocalizedName(Blocks.WATER.getTranslationKey());

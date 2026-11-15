@@ -1,19 +1,20 @@
 package org.polyfrost.forgecompat;
 
-import java.util.List;
-import java.util.function.Consumer;
-
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.server.command.AbstractCommand;
 import net.minecraft.server.command.source.CommandSource;
 import net.minecraft.text.LiteralText;
+import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import org.polyfrost.oneconfig.api.notifications.v1.Notifications;
+
+import java.util.List;
+import java.util.function.Consumer;
 
 public final class EssentialApi {
     private static final EssentialApi INSTANCE = new EssentialApi();
@@ -69,7 +70,7 @@ public final class EssentialApi {
             }
 
             @Override
-            public List<String> getSuggestions(CommandSource source, String[] args, net.minecraft.util.math.BlockPos pos) {
+            public List<String> getSuggestions(CommandSource source, String[] args, BlockPos pos) {
                 return null;
             }
         });

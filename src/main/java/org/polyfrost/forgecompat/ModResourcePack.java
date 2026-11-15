@@ -1,12 +1,12 @@
 package org.polyfrost.forgecompat;
 
+import net.minecraft.client.resource.pack.ZippedResourcePack;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-
-import net.minecraft.client.resource.pack.ZippedResourcePack;
 
 public class ModResourcePack extends ZippedResourcePack {
     private static final String META = "pack.mcmeta";

@@ -1,17 +1,17 @@
 package net.minecraftforge.fml.common;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.loader.api.metadata.ModMetadata;
+import net.fabricmc.loader.api.metadata.ModOrigin;
+import org.polyfrost.forgecompat.ForgeCompat;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import org.polyfrost.forgecompat.ForgeCompat;
-import net.fabricmc.loader.api.FabricLoader;
-import net.fabricmc.loader.api.metadata.ModMetadata;
-import net.fabricmc.loader.api.metadata.ModOrigin;
 
 public class Loader {
     public static final String MC_VERSION = "1.8.9";
