@@ -5,6 +5,7 @@ plugins {
     id("ploceus") version "1.17.4"
     id("net.ltgt.errorprone") version "5.1.1"
     id("com.diffplug.spotless") version "8.11.0"
+    checkstyle
 }
 
 fun prop(name: String) = property(name) as String
@@ -102,7 +103,7 @@ tasks {
                 error("UnnecessarilyFullyQualified")
             }
         }
-        finalizedBy("spotlessJavaCheck")
+        finalizedBy("spotlessJavaCheck", "checkstyleMain")
     }
 
     named("runClient") { dependsOn(stubs) }
