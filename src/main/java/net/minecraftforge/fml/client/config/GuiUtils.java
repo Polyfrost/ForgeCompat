@@ -1,8 +1,5 @@
 package net.minecraftforge.fml.client.config;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import net.minecraft.client.render.TextRenderer;
 import net.minecraft.client.render.platform.GlStateManager;
 import net.minecraft.client.render.platform.Lighting;
@@ -10,6 +7,9 @@ import net.minecraft.client.render.vertex.BufferBuilder;
 import net.minecraft.client.render.vertex.DefaultVertexFormat;
 import net.minecraft.client.render.vertex.Tesselator;
 import org.lwjgl.opengl.GL11;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class GuiUtils {
     public static void drawTexturedModalRect(int x, int y, int u, int v, int width, int height, float zLevel) {

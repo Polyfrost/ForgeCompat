@@ -1,6 +1,7 @@
 package net.minecraftforge.fml.client.config;
 
 import net.minecraft.client.gui.widget.ButtonWidget;
+import org.polyfrost.forgecompat.Hooks;
 
 public class HoverChecker {
     private int top, bottom, left, right, threshold;
@@ -34,7 +35,7 @@ public class HoverChecker {
     public boolean checkHover(int mouseX, int mouseY, boolean canHover) {
         if (button != null) {
             top = button.y;
-            bottom = button.y + org.polyfrost.forgecompat.Hooks.buttonHeight(button);
+            bottom = button.y + Hooks.buttonHeight(button);
             left = button.x;
             right = button.x + button.getWidth();
             canHover = canHover && button.visible;

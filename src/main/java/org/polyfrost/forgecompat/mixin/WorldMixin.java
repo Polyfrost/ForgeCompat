@@ -1,15 +1,16 @@
 package org.polyfrost.forgecompat.mixin;
 
+import net.minecraft.block.state.BlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.living.player.PlayerEntity;
-import net.minecraft.world.World;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.block.state.BlockState;
+import net.minecraft.world.World;
 import net.minecraft.world.chunk.WorldChunk;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.entity.EntityJoinWorldEvent;
+import org.polyfrost.forgecompat.Hooks;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -19,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class WorldMixin {
     @Inject(method = "addEntity", at = @At("HEAD"), cancellable = true)
     private void forgecompat$entityJoin(Entity entity, CallbackInfoReturnable<Boolean> cir) {
-        if (org.polyfrost.forgecompat.Hooks.isSceneWorld((World) (Object) this)) return;
+        if (Hooks.isSceneWorld((World) (Object) this)) return;
         if (MinecraftForge.EVENT_BUS.post(new EntityJoinWorldEvent(entity, (World) (Object) this)) && !(entity instanceof PlayerEntity)) cir.setReturnValue(false);
     }
 

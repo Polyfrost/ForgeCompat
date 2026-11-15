@@ -1,15 +1,16 @@
 package net.minecraftforge.fml.client.config;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.resource.language.I18n;
+import org.lwjgl.input.Mouse;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
-
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import org.lwjgl.input.Mouse;
 
 public class GuiConfigEntries {
     private static final int ROW_HEIGHT = 24;
@@ -198,7 +199,7 @@ public class GuiConfigEntries {
             this.category = !element.isProperty();
             String name = element.getName();
             String key = element.getLanguageKey();
-            String translated = key == null ? null : net.minecraft.client.resource.language.I18n.translate(key);
+            String translated = key == null ? null : I18n.translate(key);
             this.label = translated != null && !translated.equals(key) ? translated : name;
             if (category) {
                 String line2 = (owningScreen.titleLine2 == null ? "" : owningScreen.titleLine2) + " > " + label;

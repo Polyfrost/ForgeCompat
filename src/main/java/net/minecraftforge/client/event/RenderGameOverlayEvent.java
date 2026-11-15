@@ -4,6 +4,8 @@ import net.minecraft.client.render.Window;
 import net.minecraftforge.fml.common.eventhandler.Cancelable;
 import net.minecraftforge.fml.common.eventhandler.Event;
 
+import java.util.ArrayList;
+
 public class RenderGameOverlayEvent extends Event {
     public final float partialTicks;
     public final Window resolution;
@@ -33,10 +35,10 @@ public class RenderGameOverlayEvent extends Event {
     }
 
     public static class Text extends Pre {
-        public final java.util.ArrayList<String> left;
-        public final java.util.ArrayList<String> right;
+        public final ArrayList<String> left;
+        public final ArrayList<String> right;
 
-        public Text(float partialTicks, Window resolution, java.util.ArrayList<String> left, java.util.ArrayList<String> right) {
+        public Text(float partialTicks, Window resolution, ArrayList<String> left, ArrayList<String> right) {
             super(partialTicks, resolution, ElementType.TEXT);
             this.left = left;
             this.right = right;

@@ -6,9 +6,13 @@ import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.common.eventhandler.EventBus;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.relauncher.Side;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class FMLCommonHandler {
     private static final FMLCommonHandler INSTANCE = new FMLCommonHandler();
@@ -39,13 +43,13 @@ public class FMLCommonHandler {
         return "fml,forge";
     }
 
-    private java.util.List<String> brandings;
+    private List<String> brandings;
 
     public void computeBranding() {
-        if (brandings == null) brandings = new java.util.ArrayList<>(java.util.Arrays.asList("Minecraft 1.8.9", "Forge Compat", "Forge 11.15.1.2318"));
+        if (brandings == null) brandings = new ArrayList<>(Arrays.asList("Minecraft 1.8.9", "Forge Compat", "Forge 11.15.1.2318"));
     }
 
-    public java.util.List<String> getBrandings(boolean includeMC) {
+    public List<String> getBrandings(boolean includeMC) {
         computeBranding();
         return includeMC ? brandings : brandings.subList(1, brandings.size());
     }

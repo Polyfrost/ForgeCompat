@@ -1,6 +1,8 @@
 package net.minecraftforge.fml.client;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.network.Connection;
 import net.minecraftforge.client.GuiIngameForge;
 import org.polyfrost.forgecompat.ForgeCompat;
 import org.polyfrost.forgecompat.Hooks;
@@ -31,12 +33,12 @@ public class FMLClientHandler {
         return false;
     }
 
-    public net.minecraft.network.Connection getClientToServerNetworkManager() {
+    public Connection getClientToServerNetworkManager() {
         return getClient().getNetworkHandler() == null ? null : getClient().getNetworkHandler().getConnection();
     }
 
     public void showGuiScreen(Object screen) {
-        getClient().openScreen((net.minecraft.client.gui.screen.Screen) screen);
+        getClient().openScreen((Screen) screen);
     }
 
     public boolean isGUIOpen(Class<?> type) {

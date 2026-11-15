@@ -1,15 +1,15 @@
 package net.minecraftforge.fml.common;
 
+import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.loader.api.metadata.ModMetadata;
+import net.fabricmc.loader.api.metadata.ModOrigin;
+import org.polyfrost.forgecompat.ForgeCompat;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.polyfrost.forgecompat.ForgeCompat;
-import net.fabricmc.loader.api.FabricLoader;
-import net.fabricmc.loader.api.metadata.ModMetadata;
-import net.fabricmc.loader.api.metadata.ModOrigin;
 
 public class Loader {
     private static final Loader INSTANCE = new Loader();
@@ -40,7 +40,7 @@ public class Loader {
     }
 
     public boolean hasReachedState(LoaderState state) {
-        return org.polyfrost.forgecompat.ForgeCompat.modsInitialized() || state.ordinal() <= LoaderState.PREINITIALIZATION.ordinal();
+        return ForgeCompat.modsInitialized() || state.ordinal() <= LoaderState.PREINITIALIZATION.ordinal();
     }
 
     public ModContainer activeModContainer() {

@@ -1,8 +1,5 @@
 package net.minecraftforge.fml.client.config;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -14,6 +11,9 @@ import net.minecraftforge.fml.client.event.ConfigChangedEvent.PostConfigChangedE
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.eventhandler.Event.Result;
 import org.lwjgl.input.Keyboard;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class GuiConfig extends Screen {
     public final Screen parentScreen;

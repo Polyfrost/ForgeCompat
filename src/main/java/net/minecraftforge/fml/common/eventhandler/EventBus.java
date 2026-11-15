@@ -1,6 +1,11 @@
 package net.minecraftforge.fml.common.eventhandler;
 
+import org.apache.logging.log4j.LogManager;
+
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -32,15 +37,15 @@ public class EventBus {
     }
 
     private static Method[] declaredMethods(Class<?> type) {
-        List<Method> methods = new java.util.ArrayList<>();
+        List<Method> methods = new ArrayList<>();
         for (Class<?> c = type; c != null && c != Object.class; c = c.getSuperclass()) {
             try {
-                methods.addAll(java.util.Arrays.asList(c.getDeclaredMethods()));
+                methods.addAll(Arrays.asList(c.getDeclaredMethods()));
             } catch (LinkageError e) {
-                org.apache.logging.log4j.LogManager.getLogger("ForgeCompat").error("Skipping event handlers of {}: {}", c.getName(), e.toString());
+                LogManager.getLogger("ForgeCompat").error("Skipping event handlers of {}: {}", c.getName(), e.toString());
             }
         }
-        return methods.stream().filter(m -> java.lang.reflect.Modifier.isPublic(m.getModifiers())).toArray(Method[]::new);
+        return methods.stream().filter(m -> Modifier.isPublic(m.getModifiers())).toArray(Method[]::new);
     }
 
     public void unregister(Object target) {

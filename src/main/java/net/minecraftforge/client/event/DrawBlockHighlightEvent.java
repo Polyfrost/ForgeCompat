@@ -2,8 +2,8 @@ package net.minecraftforge.client.event;
 
 import net.minecraft.client.render.world.WorldRenderer;
 import net.minecraft.entity.living.player.PlayerEntity;
-import net.minecraft.world.HitResult;
 import net.minecraft.item.ItemStack;
+import net.minecraft.world.HitResult;
 import net.minecraftforge.fml.common.eventhandler.Cancelable;
 import net.minecraftforge.fml.common.eventhandler.Event;
 

@@ -1,11 +1,18 @@
 package org.polyfrost.forgecompat.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.living.player.PlayerEntity;
+import net.minecraft.world.World;
 import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
+import net.minecraftforge.fml.common.network.IGuiHandler;
+import net.minecraftforge.fml.common.network.NetworkRegistry;
+import org.polyfrost.forgecompat.ForgeCompat;
+import org.polyfrost.forgecompat.Hooks;
 import org.polyfrost.forgecompat.RavenHooks;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -48,22 +55,22 @@ public class PlayerEntityMixin {
 
     @Inject(method = "tick", at = @At("HEAD"))
     private void forgecompat$tickStart(CallbackInfo ci) {
-        if (org.polyfrost.forgecompat.Hooks.isSceneWorld(((PlayerEntity) (Object) this).world)) return;
+        if (Hooks.isSceneWorld(((PlayerEntity) (Object) this).world)) return;
         MinecraftForge.EVENT_BUS.post(new TickEvent.PlayerTickEvent(TickEvent.Phase.START, (PlayerEntity) (Object) this));
     }
 
     @Inject(method = "tick", at = @At("TAIL"))
     private void forgecompat$tickEnd(CallbackInfo ci) {
-        if (org.polyfrost.forgecompat.Hooks.isSceneWorld(((PlayerEntity) (Object) this).world)) return;
+        if (Hooks.isSceneWorld(((PlayerEntity) (Object) this).world)) return;
         MinecraftForge.EVENT_BUS.post(new TickEvent.PlayerTickEvent(TickEvent.Phase.END, (PlayerEntity) (Object) this));
     }
 
-    public void openGui(Object mod, int id, net.minecraft.world.World world, int x, int y, int z) {
+    public void openGui(Object mod, int id, World world, int x, int y, int z) {
         PlayerEntity player = (PlayerEntity) (Object) this;
         if (!world.isClient) return;
-        Object modInstance = mod instanceof String modId ? org.polyfrost.forgecompat.ForgeCompat.INSTANCES.get(modId) : mod;
-        net.minecraftforge.fml.common.network.IGuiHandler handler = modInstance == null ? null : net.minecraftforge.fml.common.network.NetworkRegistry.guiHandler(modInstance);
+        Object modInstance = mod instanceof String modId ? ForgeCompat.INSTANCES.get(modId) : mod;
+        IGuiHandler handler = modInstance == null ? null : NetworkRegistry.guiHandler(modInstance);
         Object gui = handler == null ? null : handler.getClientGuiElement(id, player, world, x, y, z);
-        if (gui instanceof net.minecraft.client.gui.screen.Screen screen) net.minecraft.client.Minecraft.getInstance().openScreen(screen);
+        if (gui instanceof Screen screen) Minecraft.getInstance().openScreen(screen);
     }
 }

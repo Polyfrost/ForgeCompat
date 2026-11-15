@@ -1,10 +1,10 @@
 package net.minecraftforge.event.terraingen;
 
-import java.util.Random;
-
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.ChunkSource;
 import net.minecraftforge.fml.common.eventhandler.Event;
+
+import java.util.Random;
 
 public class PopulateChunkEvent extends Event {
     public final ChunkSource chunkProvider;

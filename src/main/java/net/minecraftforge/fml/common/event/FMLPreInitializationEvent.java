@@ -1,7 +1,5 @@
 package net.minecraftforge.fml.common.event;
 
-import java.io.File;
-
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraftforge.fml.common.ModContainer;
 import net.minecraftforge.fml.common.ModMetadata;
@@ -9,6 +7,9 @@ import net.minecraftforge.fml.common.discovery.ASMDataTable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.polyfrost.forgecompat.ForgeCompat;
+
+import java.io.File;
+import java.util.Properties;
 
 public class FMLPreInitializationEvent extends FMLStateEvent {
     private final File configDir = FabricLoader.getInstance().getConfigDir().toFile();
@@ -40,7 +41,7 @@ public class FMLPreInitializationEvent extends FMLStateEvent {
         return ForgeCompat.ASM_DATA;
     }
 
-    public java.util.Properties getVersionProperties() {
+    public Properties getVersionProperties() {
         return null;
     }
 

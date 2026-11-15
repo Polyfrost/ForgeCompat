@@ -1,17 +1,18 @@
 package org.polyfrost.forgecompat;
 
-import java.util.Arrays;
-import java.util.List;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.server.command.AbstractCommand;
 import net.minecraft.server.command.exception.CommandException;
 import net.minecraft.server.command.exception.IncorrectUsageException;
 import net.minecraft.server.command.source.CommandSource;
+import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.fml.client.IModGuiFactory;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
+
+import java.util.Arrays;
+import java.util.List;
 
 public class ForgeCompatCommand extends AbstractCommand {
     private Screen pending;
@@ -56,7 +57,7 @@ public class ForgeCompatCommand extends AbstractCommand {
     }
 
     @Override
-    public List<String> getSuggestions(CommandSource source, String[] args, net.minecraft.util.math.BlockPos pos) {
+    public List<String> getSuggestions(CommandSource source, String[] args, BlockPos pos) {
         return args.length == 2 ? suggestMatching(args, ForgeCompat.GUI_FACTORIES.keySet()) : Arrays.asList("config");
     }
 }

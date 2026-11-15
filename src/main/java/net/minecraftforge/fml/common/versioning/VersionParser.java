@@ -12,16 +12,14 @@
 
 package net.minecraftforge.fml.common.versioning;
 
-import java.util.List;
-
-import net.minecraftforge.fml.common.FMLLog;
-import net.minecraftforge.fml.common.LoaderException;
-
-import org.apache.logging.log4j.Level;
-
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
+import net.minecraftforge.fml.common.FMLLog;
+import net.minecraftforge.fml.common.LoaderException;
+import org.apache.logging.log4j.Level;
+
+import java.util.List;
 
 /**
  * Parses version strings according to the specification here:
