@@ -1,5 +1,6 @@
 package net.minecraftforge.fml.common.eventhandler;
 
+import java.lang.annotation.Annotation;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -10,7 +11,7 @@ public class Event {
     private Result result = Result.DEFAULT;
 
     public boolean isCancelable() {
-        return getClass().isAnnotationPresent(Cancelable.class);
+        return hasAnnotation(Cancelable.class);
     }
 
     public boolean isCanceled() {
@@ -22,7 +23,14 @@ public class Event {
     }
 
     public boolean hasResult() {
-        return getClass().isAnnotationPresent(HasResult.class);
+        return hasAnnotation(HasResult.class);
+    }
+
+    private boolean hasAnnotation(Class<? extends Annotation> annotation) {
+        for (Class<?> type = getClass(); type != Event.class; type = type.getSuperclass()) {
+            if (type.isAnnotationPresent(annotation)) return true;
+        }
+        return false;
     }
 
     public Result getResult() {

@@ -7,6 +7,10 @@ public class ItemTooltipEvent extends PlayerEvent {
     public final java.util.List<String> toolTip;
     public final boolean showAdvancedItemTooltips;
 
+    public ItemTooltipEvent(net.minecraft.item.ItemStack itemStack, PlayerEntity player, java.util.List<String> toolTip, boolean showAdvancedItemTooltips) {
+        this(player, itemStack, toolTip, showAdvancedItemTooltips);
+    }
+
     public ItemTooltipEvent(PlayerEntity player, net.minecraft.item.ItemStack itemStack, java.util.List<String> toolTip, boolean showAdvancedItemTooltips) {
         super(player);
         this.itemStack = itemStack;

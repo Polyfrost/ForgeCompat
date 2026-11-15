@@ -8,8 +8,11 @@
     "CommandRegistryMixin",
     "BiomeMixin",
     "ButtonWidgetMixin",
+    "ClientChunkCacheMixin",
+    "ClientPlayerEntityMixin",
     "ClientPlayNetworkHandlerMixin",
     "ConnectionMixin",
+    "CrashReportMixin",
     "EntityMixin",
     "GameGuiMixin",
     "GameRendererMixin",
@@ -43,6 +46,7 @@
     "ServerWorldMixin",
     "StatusEffectMixin",
     "TextureAtlasMixin",
+    "WorldChunkMixin",
     "WorldMixin"
   ],
   "injectors": {

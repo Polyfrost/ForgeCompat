@@ -7,6 +7,9 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import net.minecraft.entity.damage.DamageSource;
+import net.minecraftforge.event.entity.living.LivingAttackEvent;
 
 @Mixin(LivingEntity.class)
 public class LivingEntityMixin {
@@ -26,5 +29,11 @@ public class LivingEntityMixin {
     private void forgecompat$death(net.minecraft.entity.damage.DamageSource source, CallbackInfo ci) {
         if (org.polyfrost.forgecompat.Hooks.isSceneWorld(((LivingEntity) (Object) this).world)) return;
         if (MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent((LivingEntity) (Object) this, source))) ci.cancel();
+    }
+
+    @Inject(method = "takeDamage", at = @At("HEAD"), cancellable = true)
+    private void forgecompat$attacked(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+        if (org.polyfrost.forgecompat.Hooks.isSceneWorld(((LivingEntity) (Object) this).world)) return;
+        if (MinecraftForge.EVENT_BUS.post(new LivingAttackEvent((LivingEntity) (Object) this, source, amount))) cir.setReturnValue(false);
     }
 }

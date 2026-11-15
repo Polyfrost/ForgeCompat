@@ -28,6 +28,9 @@ public class ForgeVersion {
         return revisionVersion;
     }
 
+    public static void startVersionCheck() {
+    }
+
     public static CheckResult getResult(net.minecraftforge.fml.common.ModContainer mod) {
         return new CheckResult(Status.UP_TO_DATE, null, java.util.Collections.emptyMap(), null);
     }

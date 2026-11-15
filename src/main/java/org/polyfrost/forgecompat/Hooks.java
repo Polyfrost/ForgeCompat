@@ -8,6 +8,7 @@ import java.security.ProtectionDomain;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 
 import javax.swing.LookAndFeel;
 import javax.swing.UIManager;
@@ -49,6 +50,49 @@ public final class Hooks {
         if (name == null || !name.startsWith("net.minecraft.")) return name;
         String mapped = ForgeCompat.mappings().mcpToRuntime(name.replace('.', '/'));
         return mapped == null ? name : mapped.replace('/', '.');
+    }
+
+    public static String deobfClass(String notch) {
+        Mappings m = ForgeCompat.mappings();
+        String runtime = m.notchToInt.get(notch);
+        return runtime == null ? mapNested(notch, Hooks::deobfClass) : m.intToMcp.getOrDefault(runtime, notch);
+    }
+
+    public static String obfClass(String mcp) {
+        Mappings m = ForgeCompat.mappings();
+        String runtime = m.fromSrg.map(mcp);
+        return runtime == null ? mapNested(mcp, Hooks::obfClass) : m.intToNotch.getOrDefault(runtime, mcp);
+    }
+
+    private static String mapNested(String name, UnaryOperator<String> mapper) {
+        int i = name.lastIndexOf('$');
+        return i < 0 ? name : mapper.apply(name.substring(0, i)) + name.substring(i);
+    }
+
+    public static Set<String> obfedClasses() {
+        return Collections.unmodifiableSet(ForgeCompat.mappings().notchToInt.keySet());
+    }
+
+    public static String staticFieldType(String oldOwner, String oldName, String newOwner, String newName) {
+        return ForgeCompat.mappings().staticFieldType(oldOwner, oldName, newOwner, newName);
+    }
+
+    public static String srgMethod(String owner, String name, String desc) {
+        Mappings m = ForgeCompat.mappings();
+        String intOwner = m.notchToInt.getOrDefault(owner, owner);
+        String runtime = m.toInt.mapMethodName(owner, name, desc);
+        String srg = m.srgMethod(intOwner, runtime, m.toInt.mapMethodDesc(desc));
+        return srg == null ? name : srg;
+    }
+
+    public static String srgField(String owner, String name, String desc) {
+        Mappings m = ForgeCompat.mappings();
+        String intOwner = m.notchToInt.getOrDefault(owner, owner);
+        if (desc == null) desc = m.notchFieldDesc(owner, name);
+        if (desc == null) return name;
+        String runtime = m.toInt.mapFieldName(owner, name, desc);
+        String srg = m.srgField(intOwner, runtime, m.toInt.mapDesc(desc));
+        return srg == null ? name : srg;
     }
 
     public static Field getDeclaredField(Class<?> owner, String name) throws NoSuchFieldException {

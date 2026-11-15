@@ -35,6 +35,7 @@ final class Mappings {
     // "owner/name desc" -> name
     private final Map<String, String> notchMethods = new HashMap<>();
     private final Map<String, String> notchFields = new HashMap<>();
+    private final Map<String, String> notchFieldDescs = new ConcurrentHashMap<>();
     private final Map<String, String> intMethods = new HashMap<>();
     private final Map<String, String> intFields = new HashMap<>();
     private final Map<String, String> fieldDescs = new HashMap<>();
@@ -119,6 +120,7 @@ final class Mappings {
             } else {
                 String name = identity ? p[4] : resolver.mapFieldName("intermediary", owner, p[4], intermediaryDescs.mapDesc(p[3]));
                 notchFields.put(p[1] + "/" + p[2] + p[3], name);
+                notchFieldDescs.putIfAbsent(p[1] + "/" + p[2], p[3]);
                 intFields.put(intOwner + "/" + name + runtimeDescs.mapDesc(p[3]), p[2]);
                 fieldDescs.put(intOwner + "/" + name, runtimeDescs.mapDesc(p[3]));
                 if (!p[5].equals("-")) {
@@ -143,12 +145,36 @@ final class Mappings {
         return srgToInt.get(srg);
     }
 
+    String srgMethod(String owner, String name, String desc) {
+        HierarchyRemapper srg = (HierarchyRemapper) toSrg;
+        return srg.find(srg.methods, owner, "/" + name + desc);
+    }
+
+    String srgField(String owner, String name, String desc) {
+        HierarchyRemapper srg = (HierarchyRemapper) toSrg;
+        return srg.find(srg.fields, owner, "/" + name + desc);
+    }
+
     boolean hasMethod(String owner, String name, String desc) {
         return intMethods.containsKey(owner + "/" + name + desc);
     }
 
     String fieldDesc(String owner, String name) {
         return fieldDescs.get(owner + "/" + name);
+    }
+
+    String notchFieldDesc(String owner, String name) {
+        for (String type = owner; type != null; type = superOf(type)) {
+            String desc = notchFieldDescs.get(type + "/" + name);
+            if (desc != null) return desc;
+        }
+        return null;
+    }
+
+    String staticFieldType(String oldOwner, String oldName, String newOwner, String newName) {
+        String desc = notchFieldDesc(oldOwner, oldName);
+        if (desc != null && !oldOwner.equals(newOwner)) notchFieldDescs.put(newOwner + "/" + newName, desc);
+        return desc;
     }
 
     String fieldByDesc(String owner, String desc) {

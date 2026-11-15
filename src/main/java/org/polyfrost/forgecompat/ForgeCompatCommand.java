@@ -34,11 +34,9 @@ public class ForgeCompatCommand extends AbstractCommand {
     @Override
     public void run(CommandSource source, String[] args) throws CommandException {
         if (args.length != 2 || !args[0].equals("config")) throw new IncorrectUsageException(getUsage(source));
-        String factory = ForgeCompat.GUI_FACTORIES.get(args[1]);
-        if (factory == null) throw new CommandException("No config screen for " + args[1] + ". Available: " + ForgeCompat.GUI_FACTORIES.keySet());
+        if (!ForgeCompat.GUI_FACTORIES.containsKey(args[1])) throw new CommandException("No config screen for " + args[1] + ". Available: " + ForgeCompat.GUI_FACTORIES.keySet());
         try {
-            IModGuiFactory instance = (IModGuiFactory) Class.forName(factory, true, ForgeCompat.class.getClassLoader()).getDeclaredConstructor().newInstance();
-            instance.initialize(Minecraft.getInstance());
+            IModGuiFactory instance = ForgeCompat.guiFactory(args[1]);
             Class<? extends Screen> gui = instance.mainConfigGuiClass();
             if (gui == null) throw new CommandException(args[1] + " has no config screen");
             pending = gui.getConstructor(Screen.class).newInstance((Screen) null);

@@ -23,6 +23,7 @@ import net.minecraftforge.client.event.MouseEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.world.WorldEvent;
+import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.gameevent.InputEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraft.client.render.GameRenderer;
@@ -122,5 +123,10 @@ public class MinecraftMixin {
     @WrapOperation(method = "doUse", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/ClientPlayerInteractionManager;useBlock(Lnet/minecraft/client/entity/living/player/LocalClientPlayerEntity;Lnet/minecraft/client/world/ClientWorld;Lnet/minecraft/item/ItemStack;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/Direction;Lnet/minecraft/util/math/Vec3d;)Z"))
     private boolean forgecompat$rightClickBlock(ClientPlayerInteractionManager manager, LocalClientPlayerEntity player, ClientWorld world, ItemStack stack, BlockPos pos, Direction face, Vec3d hit, Operation<Boolean> original) {
         return !MinecraftForge.EVENT_BUS.post(new PlayerInteractEvent(player, PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK, pos, face, world)) && original.call(manager, player, world, stack, pos, face, hit);
+    }
+
+    @WrapOperation(method = "gameCrashed", at = @At(value = "INVOKE", target = "Ljava/lang/System;exit(I)V"), require = 0)
+    private void forgecompat$crashExit(int code, Operation<Void> original) {
+        FMLCommonHandler.instance().handleExit(code);
     }
 }

@@ -27,6 +27,14 @@ public class FMLLog {
         log(Level.ERROR, format, data);
     }
 
+    public static void bigWarning(String format, Object... data) {
+        LOGGER.warn("****************************************");
+        LOGGER.warn("* {}", String.format(format, data));
+        StackTraceElement[] trace = Thread.currentThread().getStackTrace();
+        for (int i = 2; i < Math.min(8, trace.length); i++) LOGGER.warn("*  at {}", trace[i]);
+        LOGGER.warn("****************************************");
+    }
+
     public static void warning(String format, Object... data) {
         log(Level.WARN, format, data);
     }

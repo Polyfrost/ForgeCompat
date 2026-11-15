@@ -29,6 +29,17 @@ public class PlayerEvent extends LivingEvent {
         }
     }
 
+    public static class Clone extends PlayerEvent {
+        public final PlayerEntity original;
+        public final boolean wasDeath;
+
+        public Clone(PlayerEntity player, PlayerEntity original, boolean wasDeath) {
+            super(player);
+            this.original = original;
+            this.wasDeath = wasDeath;
+        }
+    }
+
     public static class NameFormat extends PlayerEvent {
         public final String username;
         public String displayname;

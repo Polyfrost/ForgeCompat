@@ -33,20 +33,24 @@ import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
+import com.google.common.collect.ImmutableMap;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.entrypoint.PreLaunchEntrypoint;
 import net.fabricmc.loader.impl.FabricLoaderImpl;
 import net.fabricmc.loader.impl.launch.FabricLauncherBase;
+import net.minecraft.client.Minecraft;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraft.launchwrapper.ITweaker;
 import net.minecraft.launchwrapper.LaunchClassLoader;
 import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.client.IModGuiFactory;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.ModContainer;
 import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.discovery.ASMDataTable;
+import net.minecraftforge.fml.common.LoaderState;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLLoadCompleteEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
@@ -93,6 +97,7 @@ public class ForgeCompat implements PreLaunchEntrypoint {
     public static final ASMDataTable ASM_DATA = new ASMDataTable();
     private static final Map<String, Object> LOADED_MODS = new LinkedHashMap<>();
     static final Map<String, String> GUI_FACTORIES = new ConcurrentHashMap<>();
+    private static final Map<String, IModGuiFactory> GUI_FACTORY_INSTANCES = new ConcurrentHashMap<>();
     /** remapped Forge mod jars, loaded as resource packs like FML does */
     public static final List<Path> RESOURCE_JARS = new CopyOnWriteArrayList<>();
     static final Map<Path, Path> ORIGINAL_JARS = new ConcurrentHashMap<>();
@@ -129,6 +134,7 @@ public class ForgeCompat implements PreLaunchEntrypoint {
     private static final String START_GAME = "am";
     private static boolean active;
     private static boolean modsInitialized;
+    private static volatile LoaderState loaderState = LoaderState.NOINIT;
 
     @Override
     public void onPreLaunch() {
@@ -320,6 +326,17 @@ public class ForgeCompat implements PreLaunchEntrypoint {
         return active;
     }
 
+    public static IModGuiFactory guiFactory(String modid) throws ReflectiveOperationException {
+        IModGuiFactory instance = GUI_FACTORY_INSTANCES.get(modid);
+        if (instance != null) return instance;
+        String factory = GUI_FACTORIES.get(modid);
+        if (factory == null) return null;
+        instance = (IModGuiFactory) Class.forName(factory, true, ForgeCompat.class.getClassLoader()).getDeclaredConstructor().newInstance();
+        instance.initialize(Minecraft.getInstance());
+        GUI_FACTORY_INSTANCES.put(modid, instance);
+        return instance;
+    }
+
     static Mappings mappings() {
         return Mappings.get();
     }
@@ -372,6 +389,7 @@ public class ForgeCompat implements PreLaunchEntrypoint {
     public static void initMods() {
         if (modsInitialized) return;
         modsInitialized = true;
+        loaderState = LoaderState.CONSTRUCTING;
         ForgeCompatCommand command = new ForgeCompatCommand();
         ClientCommandHandler.instance.register(command);
         MinecraftForge.EVENT_BUS.register(command);
@@ -386,6 +404,7 @@ public class ForgeCompat implements PreLaunchEntrypoint {
                 LOGGER.error("Failed to construct Forge mod {}", name, t);
             }
         });
+        loaderState = LoaderState.PREINITIALIZATION;
         mods.entrySet().removeIf(entry -> {
             try {
                 injectInstances(entry.getValue(), MOD_CLASSES.get(entry.getKey()));
@@ -396,6 +415,7 @@ public class ForgeCompat implements PreLaunchEntrypoint {
                 return true;
             }
         });
+        loaderState = LoaderState.INITIALIZATION;
         mods.forEach((name, mod) -> {
             long start = System.nanoTime();
             try {
@@ -406,14 +426,25 @@ public class ForgeCompat implements PreLaunchEntrypoint {
             LOGGER.info("Initialized Forge mod {} in {} ms", name, (System.nanoTime() - start) / 1_000_000);
         });
         LOADED_MODS.putAll(mods);
+        loaderState = LoaderState.POSTINITIALIZATION;
         fireAll(new net.minecraftforge.fml.common.event.FMLInterModComms.IMCEvent());
         fireAll(new FMLPostInitializationEvent());
+        loaderState = LoaderState.AVAILABLE;
         fireAll(new FMLLoadCompleteEvent());
         RavenHooks.modsInitialized();
     }
 
     public static boolean modsInitialized() {
         return modsInitialized;
+    }
+
+    public static LoaderState loaderState() {
+        return loaderState;
+    }
+
+    public static void fireServerEvent(Object event, LoaderState state) {
+        fireAll(event);
+        loaderState = state;
     }
 
     public static void fireAll(Object event) {
@@ -514,6 +545,7 @@ public class ForgeCompat implements PreLaunchEntrypoint {
                     private String name = "";
                     private String version = "";
                     private String guiFactory = "";
+                    private final ImmutableMap.Builder<String, String> properties = ImmutableMap.builder();
 
                     @Override
                     public void visit(String key, Object value) {
@@ -524,11 +556,33 @@ public class ForgeCompat implements PreLaunchEntrypoint {
                     }
 
                     @Override
+                    public AnnotationVisitor visitArray(String key) {
+                        if (!key.equals("customProperties")) return null;
+                        return new AnnotationVisitor(Opcodes.ASM9) {
+                            @Override
+                            public AnnotationVisitor visitAnnotation(String unused, String propertyDesc) {
+                                Map<String, String> property = new HashMap<>();
+                                return new AnnotationVisitor(Opcodes.ASM9) {
+                                    @Override
+                                    public void visit(String key, Object value) {
+                                        property.put(key, (String) value);
+                                    }
+
+                                    @Override
+                                    public void visitEnd() {
+                                        properties.put(property.get("k"), property.get("v"));
+                                    }
+                                };
+                            }
+                        };
+                    }
+
+                    @Override
                     public void visitEnd() {
                         if (modid == null) return;
                         if (!guiFactory.isEmpty()) GUI_FACTORIES.put(modid, guiFactory);
                         MOD_CLASSES.put(reader.getClassName().replace('/', '.'), modid);
-                        MODS.put(modid, new Loader.Container(modid, name.isEmpty() ? modid : name, version, source.toFile()));
+                        MODS.put(modid, new Loader.Container(modid, name.isEmpty() ? modid : name, version, source.toFile(), properties.build()));
                     }
                 };
             }

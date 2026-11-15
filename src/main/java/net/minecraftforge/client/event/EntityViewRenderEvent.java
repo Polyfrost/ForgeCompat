@@ -3,6 +3,7 @@ package net.minecraftforge.client.event;
 import net.minecraft.block.Block;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.entity.Entity;
+import net.minecraftforge.fml.common.eventhandler.Cancelable;
 import net.minecraftforge.fml.common.eventhandler.Event;
 
 public abstract class EntityViewRenderEvent extends Event {
@@ -16,6 +17,29 @@ public abstract class EntityViewRenderEvent extends Event {
         this.entity = entity;
         this.block = block;
         this.renderPartialTicks = renderPartialTicks;
+    }
+
+    @Cancelable
+    public static class FogDensity extends EntityViewRenderEvent {
+        public float density;
+
+        public FogDensity(GameRenderer renderer, Entity entity, Block block, double renderPartialTicks, float density) {
+            super(renderer, entity, block, renderPartialTicks);
+            this.density = density;
+        }
+    }
+
+    public static class FogColors extends EntityViewRenderEvent {
+        public float red;
+        public float green;
+        public float blue;
+
+        public FogColors(GameRenderer renderer, Entity entity, Block block, double renderPartialTicks, float red, float green, float blue) {
+            super(renderer, entity, block, renderPartialTicks);
+            this.red = red;
+            this.green = green;
+            this.blue = blue;
+        }
     }
 
     public static class CameraSetup extends EntityViewRenderEvent {

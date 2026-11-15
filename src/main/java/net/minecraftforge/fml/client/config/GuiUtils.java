@@ -12,6 +12,29 @@ import net.minecraft.client.render.vertex.Tesselator;
 import org.lwjgl.opengl.GL11;
 
 public class GuiUtils {
+    public static int[] colorCodes = new int[32];
+
+    static {
+        for (int i = 0; i < 32; i++) {
+            int base = (i >> 3 & 1) * 85;
+            int r = (i >> 2 & 1) * 170 + base;
+            int g = (i >> 1 & 1) * 170 + base;
+            int b = (i & 1) * 170 + base;
+            if (i == 6) r += 85;
+            if (i >= 16) {
+                r /= 4;
+                g /= 4;
+                b /= 4;
+            }
+            colorCodes[i] = (r & 255) << 16 | (g & 255) << 8 | b & 255;
+        }
+    }
+
+    public static int getColorCode(char colorChar, boolean isLighter) {
+        int index = "0123456789abcdef".indexOf(colorChar);
+        return colorCodes[isLighter ? index : index + 16];
+    }
+
     public static void drawTexturedModalRect(int x, int y, int u, int v, int width, int height, float zLevel) {
         float uScale = 1f / 0x100;
         float vScale = 1f / 0x100;

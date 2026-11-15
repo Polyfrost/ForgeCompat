@@ -4,6 +4,7 @@ import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.render.Camera;
@@ -22,11 +23,65 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import net.minecraft.block.Block;
 
 @Mixin(GameRenderer.class)
 public abstract class GameRendererMixin {
     @Shadow
     private Minecraft minecraft;
+    @Shadow
+    private float fogRed;
+    @Shadow
+    private float fogGreen;
+    @Shadow
+    private float fogBlue;
+
+    @Unique
+    private boolean forgecompat$fogOverride;
+
+    @Inject(method = "setupFog", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;getBlockInside(Lnet/minecraft/world/World;Lnet/minecraft/entity/Entity;F)Lnet/minecraft/block/Block;", shift = At.Shift.AFTER))
+    private void forgecompat$fogDensity(int startCoords, float tickDelta, CallbackInfo ci) {
+        forgecompat$fogOverride = false;
+        if (!MinecraftForge.EVENT_BUS.hasListeners(EntityViewRenderEvent.FogDensity.class) || Hooks.isSceneWorld(minecraft.world)) return;
+        Entity entity = minecraft.getCamera();
+        EntityViewRenderEvent.FogDensity event = new EntityViewRenderEvent.FogDensity((GameRenderer) (Object) this, entity, Camera.getBlockInside(minecraft.world, entity, tickDelta), tickDelta, 0.1F);
+        if (!MinecraftForge.EVENT_BUS.post(event) || event.density < 0) return;
+        GlStateManager.fogDensity(event.density);
+        forgecompat$fogOverride = true;
+    }
+
+    @WrapWithCondition(method = "setupFog", at = {
+            @At(value = "INVOKE", target = "Lnet/minecraft/client/render/platform/GlStateManager;fogDensity(F)V"),
+            @At(value = "INVOKE", target = "Lnet/minecraft/client/render/platform/GlStateManager;fogStart(F)V"),
+            @At(value = "INVOKE", target = "Lnet/minecraft/client/render/platform/GlStateManager;fogEnd(F)V")
+    })
+    private boolean forgecompat$vanillaFog(float value) {
+        return !forgecompat$fogOverride;
+    }
+
+    @WrapWithCondition(method = "setupFog", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/platform/GlStateManager;fogMode(I)V"))
+    private boolean forgecompat$vanillaFogMode(int mode) {
+        return !forgecompat$fogOverride;
+    }
+
+    @WrapWithCondition(method = "setupFog", at = @At(value = "INVOKE", target = "Lorg/lwjgl/opengl/GL11;glFogi(II)V"))
+    private boolean forgecompat$vanillaFogDistance(int name, int param) {
+        return !forgecompat$fogOverride;
+    }
+
+    @WrapOperation(method = "setupClearColor", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/platform/GlStateManager;clearColor(FFFF)V"))
+    private void forgecompat$fogColors(float red, float green, float blue, float alpha, Operation<Void> original, @Local(argsOnly = true) float tickDelta) {
+        if (MinecraftForge.EVENT_BUS.hasListeners(EntityViewRenderEvent.FogColors.class) && !Hooks.isSceneWorld(minecraft.world)) {
+            Entity entity = minecraft.getCamera();
+            Block block = Camera.getBlockInside(minecraft.world, entity, tickDelta);
+            EntityViewRenderEvent.FogColors event = new EntityViewRenderEvent.FogColors((GameRenderer) (Object) this, entity, block, tickDelta, red, green, blue);
+            MinecraftForge.EVENT_BUS.post(event);
+            red = fogRed = event.red;
+            green = fogGreen = event.green;
+            blue = fogBlue = event.blue;
+        }
+        original.call(red, green, blue, alpha);
+    }
 
     @WrapOperation(method = "render(FJ)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screen/Screen;render(IIF)V"))
     private void forgecompat$drawScreen(Screen screen, int mouseX, int mouseY, float partialTicks, Operation<Void> original) {
