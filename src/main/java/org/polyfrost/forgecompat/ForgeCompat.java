@@ -53,6 +53,7 @@ import org.spongepowered.asm.mixin.Mixins;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfig;
 import org.spongepowered.asm.mixin.transformer.Config;
 import org.spongepowered.asm.mixin.transformer.IMixinTransformer;
+import org.spongepowered.asm.mixin.transformer.throwables.IllegalClassLoadError;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -210,21 +211,29 @@ public class ForgeCompat implements PreLaunchEntrypoint {
         long start = System.nanoTime();
         try {
             for (String name : tweakers) {
-                ITweaker tweaker = (ITweaker) newInstance(name);
-                tweaker.acceptOptions(new ArrayList<>(), gameDir.toFile(), null, null);
-                tweaker.injectIntoClassLoader(new LaunchClassLoader());
+                try {
+                    ITweaker tweaker = (ITweaker) newInstance(name);
+                    tweaker.acceptOptions(new ArrayList<>(), gameDir.toFile(), null, null);
+                    tweaker.injectIntoClassLoader(new LaunchClassLoader());
+                } catch (ReflectiveOperationException | LinkageError | RuntimeException e) {
+                    LOGGER.error("Skipping Forge tweaker {}: it failed to load", name, unwrap(e));
+                }
             }
             for (String name : plugins) {
-                Object instance = newInstance(name);
-                if (!(instance instanceof IFMLLoadingPlugin plugin)) {
-                    LOGGER.warn("Skipping FMLCorePlugin {}: not an IFMLLoadingPlugin", name);
-                    continue;
+                try {
+                    Object instance = newInstance(name);
+                    if (!(instance instanceof IFMLLoadingPlugin plugin)) {
+                        LOGGER.warn("Skipping FMLCorePlugin {}: not an IFMLLoadingPlugin", name);
+                        continue;
+                    }
+                    plugin.injectData(pluginData(gameDir, plugin));
+                    String[] transformers = plugin.getASMTransformerClass();
+                    IFMLLoadingPlugin.SortingIndex index = plugin.getClass().getAnnotation(IFMLLoadingPlugin.SortingIndex.class);
+                    boolean srg = index != null && index.value() > 1000;
+                    if (transformers != null) for (String transformer : transformers) addTransformer(transformer, srg);
+                } catch (ReflectiveOperationException | LinkageError | RuntimeException e) {
+                    LOGGER.error("Skipping Forge coremod {} from {}: it failed to load", name, PLUGIN_JARS.get(name).getFileName(), unwrap(e));
                 }
-                plugin.injectData(pluginData(gameDir, plugin));
-                String[] transformers = plugin.getASMTransformerClass();
-                IFMLLoadingPlugin.SortingIndex index = plugin.getClass().getAnnotation(IFMLLoadingPlugin.SortingIndex.class);
-                boolean srg = index != null && index.value() > 1000;
-                if (transformers != null) for (String transformer : transformers) addTransformer(transformer, srg);
             }
             for (String config : manifestMixinConfigs) addMixinConfig(config);
             if (active) hookModClasses();
@@ -232,6 +241,10 @@ public class ForgeCompat implements PreLaunchEntrypoint {
             throw new RuntimeException("Failed to load Forge coremod", e);
         }
         LOGGER.info("Set up Forge tweakers and coremods in {} ms", (System.nanoTime() - start) / 1_000_000);
+    }
+
+    private static Throwable unwrap(Throwable t) {
+        return t instanceof InvocationTargetException e && e.getCause() != null ? e.getCause() : t;
     }
 
     private static Map<String, Object> pluginData(Path gameDir, IFMLLoadingPlugin plugin) {
@@ -285,6 +298,8 @@ public class ForgeCompat implements PreLaunchEntrypoint {
         }
     }
 
+    private static final Set<String> ILLEGAL_CLASS_LOADS = ConcurrentHashMap.newKeySet();
+
     private static void hookModClasses() throws ReflectiveOperationException {
         Field delegateField = FabricLauncherBase.getLauncher().getClass().getDeclaredField("classLoader");
         delegateField.setAccessible(true);
@@ -294,13 +309,19 @@ public class ForgeCompat implements PreLaunchEntrypoint {
         IMixinTransformer mixin = (IMixinTransformer) field.get(delegate);
         String fontRenderer = mappings().mcpToRuntime("net/minecraft/client/gui/FontRenderer").replace('/', '.');
         field.set(delegate, Proxy.newProxyInstance(IMixinTransformer.class.getClassLoader(), new Class<?>[]{IMixinTransformer.class}, (proxy, method, args) -> {
-            if (method.getName().equals("transformClassBytes") && args[2] instanceof byte[] bytes) {
+            boolean transform = method.getName().equals("transformClassBytes");
+            if (transform && ILLEGAL_CLASS_LOADS.contains((String) args[0])) return null;
+            if (transform && args[2] instanceof byte[] bytes) {
                 if (FORGE_CLASSES.contains((String) args[0])) args[2] = transformModClass((String) args[1], bytes);
                 else if (fontRenderer.equals(args[0])) args[2] = ForgePatches.applyFontRenderer(bytes);
             }
             try {
                 return method.invoke(mixin, args);
             } catch (InvocationTargetException e) {
+                if (transform && e.getCause() instanceof IllegalClassLoadError) {
+                    ILLEGAL_CLASS_LOADS.add((String) args[0]);
+                    return null;
+                }
                 throw e.getCause();
             }
         }));
