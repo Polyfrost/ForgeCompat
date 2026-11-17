@@ -1,8 +1,8 @@
 package net.minecraftforge.common.brewing;
 
-import java.util.List;
-
 import net.minecraft.item.ItemStack;
+
+import java.util.List;
 
 public class BrewingOreRecipe implements IBrewingRecipe {
     public final ItemStack input;

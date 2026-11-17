@@ -1,12 +1,12 @@
 package net.minecraftforge.oredict;
 
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
 
 public class OreDictionary {
     public static final int WILDCARD_VALUE = Short.MAX_VALUE;

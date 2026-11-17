@@ -1,6 +1,11 @@
+import net.ltgt.gradle.errorprone.errorprone
+
 plugins {
     id("net.fabricmc.fabric-loom-remap") version "1.17-SNAPSHOT"
     id("ploceus") version "1.17.4"
+    id("net.ltgt.errorprone") version "5.1.1"
+    id("com.diffplug.spotless") version "8.11.0"
+    checkstyle
 }
 
 fun prop(name: String) = property(name) as String
@@ -50,6 +55,7 @@ dependencies {
     essentialLibs("gg.essential:universalcraft-1.8.9-forge:543")
     essentialLibs("gg.essential:elementa-1.8.9-forge:657")
     essentialLibs("gg.essential:vigilance-1.8.9-forge:299")
+    errorprone("com.google.errorprone:error_prone_core:2.51.0")
 }
 
 val essentialApiJar = tasks.register<Jar>("essentialApiJar") {
@@ -88,8 +94,16 @@ java {
 
 tasks {
     withType<JavaCompile>().configureEach {
-        options.release = 25
-        options.encoding = "UTF-8"
+        options.apply {
+            release = 25
+            encoding = "UTF-8"
+
+            errorprone {
+                disableAllChecks = true
+                error("UnnecessarilyFullyQualified")
+            }
+        }
+        finalizedBy("spotlessJavaCheck", "checkstyleMain")
     }
 
     named("runClient") { dependsOn(stubs) }
@@ -104,5 +118,12 @@ tasks {
             into("forgecompat/essential")
             rename { it.substringBefore("-1.8.9") + ".jar" }
         }
+    }
+}
+
+spotless {
+    java {
+        importOrder("", "javax|java", "\\#")
+        removeUnusedImports()
     }
 }

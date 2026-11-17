@@ -1,5 +1,11 @@
 package org.polyfrost.forgecompat;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import net.fabricmc.loader.impl.launch.FabricLauncherBase;
+import org.spongepowered.asm.mixin.Mixins;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -16,12 +22,6 @@ import java.util.List;
 import java.util.function.Supplier;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import net.fabricmc.loader.impl.launch.FabricLauncherBase;
-import org.spongepowered.asm.mixin.Mixins;
 
 final class Essential {
     static final String TWEAKER = "gg.essential.loader.stage0.EssentialSetupTweaker";

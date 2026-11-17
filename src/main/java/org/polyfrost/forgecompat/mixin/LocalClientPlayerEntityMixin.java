@@ -11,12 +11,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(LocalClientPlayerEntity.class)
 public class LocalClientPlayerEntityMixin {
-    @ModifyExpressionValue(method = "mobTick", at = @At(value = "CONSTANT", args = "floatValue=0.2F"))
+    @ModifyExpressionValue(method = "mobTick", at = @At(value = "CONSTANT", args = "floatValue=0.2F"), require = 0)
     private float forgecompat$ravenNoSlow(float slowdown) {
         return RavenHooks.active() ? 1.0F : slowdown;
     }
 
-    @Inject(method = "mobTick", at = @At(value = "FIELD", target = "Lnet/minecraft/client/entity/living/player/Input;movementForward:F", opcode = Opcodes.PUTFIELD, ordinal = 0, shift = At.Shift.AFTER))
+    @Inject(method = "mobTick", at = @At(value = "FIELD", target = "Lnet/minecraft/client/entity/living/player/Input;movementForward:F", opcode = Opcodes.PUTFIELD, ordinal = 0, shift = At.Shift.AFTER), require = 0)
     private void forgecompat$ravenSlowdown(CallbackInfo ci) {
         if (RavenHooks.active()) RavenHooks.slowdown();
     }

@@ -12,14 +12,14 @@
 
 package net.minecraftforge.fml.client.config;
 
+import net.minecraft.client.resource.language.I18n;
+import net.minecraftforge.fml.client.config.GuiConfigEntries.IConfigEntry;
+import net.minecraftforge.fml.client.config.GuiEditArrayEntries.IArrayEntry;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
-
-import net.minecraft.client.resource.language.I18n;
-import net.minecraftforge.fml.client.config.GuiConfigEntries.IConfigEntry;
-import net.minecraftforge.fml.client.config.GuiEditArrayEntries.IArrayEntry;
 
 
 public class DummyConfigElement implements IConfigElement

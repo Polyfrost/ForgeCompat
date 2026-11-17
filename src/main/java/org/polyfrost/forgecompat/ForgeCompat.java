@@ -1,53 +1,25 @@
 package org.polyfrost.forgecompat;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.Proxy;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.nio.file.attribute.FileTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.jar.Attributes;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-import java.util.zip.ZipInputStream;
-import java.util.zip.ZipOutputStream;
-
+import com.google.common.collect.ImmutableMap;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.entrypoint.PreLaunchEntrypoint;
 import net.fabricmc.loader.impl.FabricLoaderImpl;
 import net.fabricmc.loader.impl.launch.FabricLauncherBase;
+import net.minecraft.client.Minecraft;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraft.launchwrapper.ITweaker;
 import net.minecraft.launchwrapper.LaunchClassLoader;
 import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.client.IModGuiFactory;
 import net.minecraftforge.fml.common.Loader;
+import net.minecraftforge.fml.common.LoaderState;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.ModContainer;
 import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.discovery.ASMDataTable;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLInterModComms;
 import net.minecraftforge.fml.common.event.FMLLoadCompleteEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
@@ -81,6 +53,43 @@ import org.spongepowered.asm.mixin.Mixins;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfig;
 import org.spongepowered.asm.mixin.transformer.Config;
 import org.spongepowered.asm.mixin.transformer.IMixinTransformer;
+import org.spongepowered.asm.mixin.transformer.throwables.IllegalClassLoadError;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Proxy;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.FileTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.jar.Attributes;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
 /**
  * Finds Forge mods in the mods folder, remaps them to intermediary, puts them on the game class
@@ -93,6 +102,7 @@ public class ForgeCompat implements PreLaunchEntrypoint {
     public static final ASMDataTable ASM_DATA = new ASMDataTable();
     private static final Map<String, Object> LOADED_MODS = new LinkedHashMap<>();
     static final Map<String, String> GUI_FACTORIES = new ConcurrentHashMap<>();
+    private static final Map<String, IModGuiFactory> GUI_FACTORY_INSTANCES = new ConcurrentHashMap<>();
     /** remapped Forge mod jars, loaded as resource packs like FML does */
     public static final List<Path> RESOURCE_JARS = new CopyOnWriteArrayList<>();
     static final Map<Path, Path> ORIGINAL_JARS = new ConcurrentHashMap<>();
@@ -129,6 +139,7 @@ public class ForgeCompat implements PreLaunchEntrypoint {
     private static final String START_GAME = "am";
     private static boolean active;
     private static boolean modsInitialized;
+    private static volatile LoaderState loaderState = LoaderState.NOINIT;
 
     @Override
     public void onPreLaunch() {
@@ -200,21 +211,29 @@ public class ForgeCompat implements PreLaunchEntrypoint {
         long start = System.nanoTime();
         try {
             for (String name : tweakers) {
-                ITweaker tweaker = (ITweaker) newInstance(name);
-                tweaker.acceptOptions(new ArrayList<>(), gameDir.toFile(), null, null);
-                tweaker.injectIntoClassLoader(new LaunchClassLoader());
+                try {
+                    ITweaker tweaker = (ITweaker) newInstance(name);
+                    tweaker.acceptOptions(new ArrayList<>(), gameDir.toFile(), null, null);
+                    tweaker.injectIntoClassLoader(new LaunchClassLoader());
+                } catch (ReflectiveOperationException | LinkageError | RuntimeException e) {
+                    LOGGER.error("Skipping Forge tweaker {}: it failed to load", name, unwrap(e));
+                }
             }
             for (String name : plugins) {
-                Object instance = newInstance(name);
-                if (!(instance instanceof IFMLLoadingPlugin plugin)) {
-                    LOGGER.warn("Skipping FMLCorePlugin {}: not an IFMLLoadingPlugin", name);
-                    continue;
+                try {
+                    Object instance = newInstance(name);
+                    if (!(instance instanceof IFMLLoadingPlugin plugin)) {
+                        LOGGER.warn("Skipping FMLCorePlugin {}: not an IFMLLoadingPlugin", name);
+                        continue;
+                    }
+                    plugin.injectData(pluginData(gameDir, plugin));
+                    String[] transformers = plugin.getASMTransformerClass();
+                    IFMLLoadingPlugin.SortingIndex index = plugin.getClass().getAnnotation(IFMLLoadingPlugin.SortingIndex.class);
+                    boolean srg = index != null && index.value() > 1000;
+                    if (transformers != null) for (String transformer : transformers) addTransformer(transformer, srg);
+                } catch (ReflectiveOperationException | LinkageError | RuntimeException e) {
+                    LOGGER.error("Skipping Forge coremod {} from {}: it failed to load", name, PLUGIN_JARS.get(name).getFileName(), unwrap(e));
                 }
-                plugin.injectData(pluginData(gameDir, plugin));
-                String[] transformers = plugin.getASMTransformerClass();
-                IFMLLoadingPlugin.SortingIndex index = plugin.getClass().getAnnotation(IFMLLoadingPlugin.SortingIndex.class);
-                boolean srg = index != null && index.value() > 1000;
-                if (transformers != null) for (String transformer : transformers) addTransformer(transformer, srg);
             }
             for (String config : manifestMixinConfigs) addMixinConfig(config);
             if (active) hookModClasses();
@@ -222,6 +241,10 @@ public class ForgeCompat implements PreLaunchEntrypoint {
             throw new RuntimeException("Failed to load Forge coremod", e);
         }
         LOGGER.info("Set up Forge tweakers and coremods in {} ms", (System.nanoTime() - start) / 1_000_000);
+    }
+
+    private static Throwable unwrap(Throwable t) {
+        return t instanceof InvocationTargetException e && e.getCause() != null ? e.getCause() : t;
     }
 
     private static Map<String, Object> pluginData(Path gameDir, IFMLLoadingPlugin plugin) {
@@ -275,6 +298,8 @@ public class ForgeCompat implements PreLaunchEntrypoint {
         }
     }
 
+    private static final Set<String> ILLEGAL_CLASS_LOADS = ConcurrentHashMap.newKeySet();
+
     private static void hookModClasses() throws ReflectiveOperationException {
         Field delegateField = FabricLauncherBase.getLauncher().getClass().getDeclaredField("classLoader");
         delegateField.setAccessible(true);
@@ -284,13 +309,19 @@ public class ForgeCompat implements PreLaunchEntrypoint {
         IMixinTransformer mixin = (IMixinTransformer) field.get(delegate);
         String fontRenderer = mappings().mcpToRuntime("net/minecraft/client/gui/FontRenderer").replace('/', '.');
         field.set(delegate, Proxy.newProxyInstance(IMixinTransformer.class.getClassLoader(), new Class<?>[]{IMixinTransformer.class}, (proxy, method, args) -> {
-            if (method.getName().equals("transformClassBytes") && args[2] instanceof byte[] bytes) {
+            boolean transform = method.getName().equals("transformClassBytes");
+            if (transform && ILLEGAL_CLASS_LOADS.contains((String) args[0])) return null;
+            if (transform && args[2] instanceof byte[] bytes) {
                 if (FORGE_CLASSES.contains((String) args[0])) args[2] = transformModClass((String) args[1], bytes);
                 else if (fontRenderer.equals(args[0])) args[2] = ForgePatches.applyFontRenderer(bytes);
             }
             try {
                 return method.invoke(mixin, args);
             } catch (InvocationTargetException e) {
+                if (transform && e.getCause() instanceof IllegalClassLoadError) {
+                    ILLEGAL_CLASS_LOADS.add((String) args[0]);
+                    return null;
+                }
                 throw e.getCause();
             }
         }));
@@ -318,6 +349,17 @@ public class ForgeCompat implements PreLaunchEntrypoint {
 
     static boolean active() {
         return active;
+    }
+
+    public static IModGuiFactory guiFactory(String modid) throws ReflectiveOperationException {
+        IModGuiFactory instance = GUI_FACTORY_INSTANCES.get(modid);
+        if (instance != null) return instance;
+        String factory = GUI_FACTORIES.get(modid);
+        if (factory == null) return null;
+        instance = (IModGuiFactory) Class.forName(factory, true, ForgeCompat.class.getClassLoader()).getDeclaredConstructor().newInstance();
+        instance.initialize(Minecraft.getInstance());
+        GUI_FACTORY_INSTANCES.put(modid, instance);
+        return instance;
     }
 
     static Mappings mappings() {
@@ -372,6 +414,7 @@ public class ForgeCompat implements PreLaunchEntrypoint {
     public static void initMods() {
         if (modsInitialized) return;
         modsInitialized = true;
+        loaderState = LoaderState.CONSTRUCTING;
         ForgeCompatCommand command = new ForgeCompatCommand();
         ClientCommandHandler.instance.register(command);
         MinecraftForge.EVENT_BUS.register(command);
@@ -386,6 +429,7 @@ public class ForgeCompat implements PreLaunchEntrypoint {
                 LOGGER.error("Failed to construct Forge mod {}", name, t);
             }
         });
+        loaderState = LoaderState.PREINITIALIZATION;
         mods.entrySet().removeIf(entry -> {
             try {
                 injectInstances(entry.getValue(), MOD_CLASSES.get(entry.getKey()));
@@ -396,6 +440,7 @@ public class ForgeCompat implements PreLaunchEntrypoint {
                 return true;
             }
         });
+        loaderState = LoaderState.INITIALIZATION;
         mods.forEach((name, mod) -> {
             long start = System.nanoTime();
             LegacyOneConfig.deferRegistration();
@@ -408,14 +453,25 @@ public class ForgeCompat implements PreLaunchEntrypoint {
             LOGGER.info("Initialized Forge mod {} in {} ms", name, (System.nanoTime() - start) / 1_000_000);
         });
         LOADED_MODS.putAll(mods);
-        fireAll(new net.minecraftforge.fml.common.event.FMLInterModComms.IMCEvent());
+        loaderState = LoaderState.POSTINITIALIZATION;
+        fireAll(new FMLInterModComms.IMCEvent());
         fireAll(new FMLPostInitializationEvent());
+        loaderState = LoaderState.AVAILABLE;
         fireAll(new FMLLoadCompleteEvent());
         RavenHooks.modsInitialized();
     }
 
     public static boolean modsInitialized() {
         return modsInitialized;
+    }
+
+    public static LoaderState loaderState() {
+        return loaderState;
+    }
+
+    public static void fireServerEvent(Object event, LoaderState state) {
+        fireAll(event);
+        loaderState = state;
     }
 
     public static void fireAll(Object event) {
@@ -476,7 +532,7 @@ public class ForgeCompat implements PreLaunchEntrypoint {
             }
         } catch (NoSuchFieldException ignored) {
         }
-        java.lang.reflect.Constructor<?> constructor = type.getDeclaredConstructor();
+        Constructor<?> constructor = type.getDeclaredConstructor();
         constructor.setAccessible(true);
         return constructor.newInstance();
     }
@@ -516,6 +572,7 @@ public class ForgeCompat implements PreLaunchEntrypoint {
                     private String name = "";
                     private String version = "";
                     private String guiFactory = "";
+                    private final ImmutableMap.Builder<String, String> properties = ImmutableMap.builder();
 
                     @Override
                     public void visit(String key, Object value) {
@@ -526,11 +583,33 @@ public class ForgeCompat implements PreLaunchEntrypoint {
                     }
 
                     @Override
+                    public AnnotationVisitor visitArray(String key) {
+                        if (!key.equals("customProperties")) return null;
+                        return new AnnotationVisitor(Opcodes.ASM9) {
+                            @Override
+                            public AnnotationVisitor visitAnnotation(String unused, String propertyDesc) {
+                                Map<String, String> property = new HashMap<>();
+                                return new AnnotationVisitor(Opcodes.ASM9) {
+                                    @Override
+                                    public void visit(String key, Object value) {
+                                        property.put(key, (String) value);
+                                    }
+
+                                    @Override
+                                    public void visitEnd() {
+                                        properties.put(property.get("k"), property.get("v"));
+                                    }
+                                };
+                            }
+                        };
+                    }
+
+                    @Override
                     public void visitEnd() {
                         if (modid == null) return;
                         if (!guiFactory.isEmpty()) GUI_FACTORIES.put(modid, guiFactory);
                         MOD_CLASSES.put(reader.getClassName().replace('/', '.'), modid);
-                        MODS.put(modid, new Loader.Container(modid, name.isEmpty() ? modid : name, version, source.toFile()));
+                        MODS.put(modid, new Loader.Container(modid, name.isEmpty() ? modid : name, version, source.toFile(), properties.build()));
                     }
                 };
             }
@@ -587,7 +666,7 @@ public class ForgeCompat implements PreLaunchEntrypoint {
         }
         Path tmp = out.resolveSibling(out.getFileName() + ".tmp");
         try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(tmp))) {
-            Set<String> dirs = new java.util.TreeSet<>();
+            Set<String> dirs = new TreeSet<>();
             for (String name : entries.keySet()) {
                 for (int i = name.indexOf('/'); i > 0; i = name.indexOf('/', i + 1)) dirs.add(name.substring(0, i + 1));
             }
@@ -700,7 +779,7 @@ public class ForgeCompat implements PreLaunchEntrypoint {
 
     private static ClassVisitor dropDuplicateMethods(ClassVisitor next) {
         return new ClassVisitor(Opcodes.ASM9, next) {
-            private final Set<String> seen = new java.util.HashSet<>();
+            private final Set<String> seen = new HashSet<>();
 
             @Override
             public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {

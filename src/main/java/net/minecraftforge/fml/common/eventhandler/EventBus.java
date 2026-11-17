@@ -1,6 +1,15 @@
 package net.minecraftforge.fml.common.eventhandler;
 
+import org.apache.logging.log4j.LogManager;
+
+import java.lang.invoke.LambdaMetafactory;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +33,7 @@ public class EventBus {
             SubscribeEvent subscribe = method.getAnnotation(SubscribeEvent.class);
             if (subscribe != null && method.getParameterCount() == 1) {
                 method.setAccessible(true);
-                listeners.add(new Listener(target, method, method.getParameterTypes()[0], subscribe));
+                listeners.add(new Listener(target, method.getParameterTypes()[0], subscribe, invoker(target, method)));
             }
         }
         listeners.sort(Comparator.comparing(listener -> listener.subscribe.priority()));
@@ -32,15 +41,37 @@ public class EventBus {
     }
 
     private static Method[] declaredMethods(Class<?> type) {
-        List<Method> methods = new java.util.ArrayList<>();
+        List<Method> methods = new ArrayList<>();
         for (Class<?> c = type; c != null && c != Object.class; c = c.getSuperclass()) {
             try {
-                methods.addAll(java.util.Arrays.asList(c.getDeclaredMethods()));
+                methods.addAll(Arrays.asList(c.getDeclaredMethods()));
             } catch (LinkageError e) {
-                org.apache.logging.log4j.LogManager.getLogger("ForgeCompat").error("Skipping event handlers of {}: {}", c.getName(), e.toString());
+                LogManager.getLogger("ForgeCompat").error("Skipping event handlers of {}: {}", c.getName(), e.toString());
             }
         }
-        return methods.stream().filter(m -> java.lang.reflect.Modifier.isPublic(m.getModifiers())).toArray(Method[]::new);
+        return methods.stream().filter(m -> Modifier.isPublic(m.getModifiers())).toArray(Method[]::new);
+    }
+
+    private static IEventListener invoker(Object target, Method method) {
+        try {
+            MethodHandles.Lookup lookup = MethodHandles.privateLookupIn(method.getDeclaringClass(), MethodHandles.lookup());
+            MethodHandle handle = lookup.unreflect(method);
+            boolean isStatic = Modifier.isStatic(method.getModifiers());
+            MethodType factoryType = isStatic ? MethodType.methodType(IEventListener.class) : MethodType.methodType(IEventListener.class, method.getDeclaringClass());
+            MethodHandle factory = LambdaMetafactory.metafactory(lookup, "invoke", factoryType,
+                    MethodType.methodType(void.class, Event.class), handle,
+                    MethodType.methodType(void.class, method.getParameterTypes()[0])).getTarget();
+            return isStatic ? (IEventListener) factory.invoke() : (IEventListener) factory.invoke(target);
+        } catch (Throwable e) {
+            LogManager.getLogger("ForgeCompat").debug("Using reflection for event handler {}: {}", method, e.toString());
+            return event -> {
+                try {
+                    method.invoke(target, event);
+                } catch (ReflectiveOperationException ex) {
+                    throw new RuntimeException("Forge event handler " + method + " failed", ex);
+                }
+            };
+        }
     }
 
     public void unregister(Object target) {
@@ -63,16 +94,12 @@ public class EventBus {
     public boolean post(Event event) {
         for (Listener listener : listeners(event.getClass())) {
             if (!event.isCanceled() || listener.subscribe.receiveCanceled()) {
-                try {
-                    listener.method.invoke(listener.target, event);
-                } catch (ReflectiveOperationException e) {
-                    throw new RuntimeException("Forge event handler " + listener.method + " failed", e);
-                }
+                listener.invoker.invoke(event);
             }
         }
         return event.isCanceled();
     }
 
-    private record Listener(Object target, Method method, Class<?> type, SubscribeEvent subscribe) {
+    private record Listener(Object target, Class<?> type, SubscribeEvent subscribe, IEventListener invoker) {
     }
 }

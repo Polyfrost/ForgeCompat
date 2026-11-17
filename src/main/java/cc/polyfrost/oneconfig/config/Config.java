@@ -1,16 +1,23 @@
 package cc.polyfrost.oneconfig.config;
 
+import cc.polyfrost.oneconfig.config.core.OneKeyBind;
 import cc.polyfrost.oneconfig.config.data.Mod;
 import org.polyfrost.forgecompat.LegacyOneConfig;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class Config {
     public final transient Mod mod;
     public final transient String configFile;
     public boolean enabled;
-    public final transient java.util.HashMap<String, Object> optionNames = new java.util.HashMap<>();
+    public final transient HashMap<String, Object> optionNames = new HashMap<>();
     private transient LegacyOneConfig.Bridge bridge;
     private transient boolean initialized;
-    private final transient java.util.List<java.util.function.Consumer<LegacyOneConfig.Bridge>> pending = new java.util.ArrayList<>();
+    private final transient List<Consumer<LegacyOneConfig.Bridge>> pending = new ArrayList<>();
 
     public Config(Mod modData, String configFile, boolean enabled) {
         this.mod = modData;
@@ -43,12 +50,12 @@ public class Config {
         if (bridge != null) bridge.save();
     }
 
-    protected void registerKeyBind(cc.polyfrost.oneconfig.config.core.OneKeyBind keyBind, Runnable runnable) {
+    protected void registerKeyBind(OneKeyBind keyBind, Runnable runnable) {
         keyBind.setRunnable(runnable);
         LegacyOneConfig.registerKeyBind(keyBind);
     }
 
-    protected final void addDependency(String option, java.util.function.Supplier<Boolean> condition) {
+    protected final void addDependency(String option, Supplier<Boolean> condition) {
         addDependency(option, option, condition);
     }
 
@@ -56,11 +63,11 @@ public class Config {
         withBridge(b -> b.dependency(option, dependentOption));
     }
 
-    protected final void addDependency(String option, String dependencyName, java.util.function.Supplier<Boolean> condition) {
+    protected final void addDependency(String option, String dependencyName, Supplier<Boolean> condition) {
         withBridge(b -> b.dependency(option, dependencyName, condition));
     }
 
-    protected final void hideIf(String option, java.util.function.Supplier<Boolean> condition) {
+    protected final void hideIf(String option, Supplier<Boolean> condition) {
         withBridge(b -> b.hideIf(option, condition));
     }
 
@@ -73,7 +80,7 @@ public class Config {
     }
 
     // mods may call these before initialize()
-    private void withBridge(java.util.function.Consumer<LegacyOneConfig.Bridge> action) {
+    private void withBridge(Consumer<LegacyOneConfig.Bridge> action) {
         if (bridge != null) action.accept(bridge);
         else pending.add(action);
     }

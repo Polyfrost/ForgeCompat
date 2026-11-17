@@ -4,10 +4,17 @@ import net.minecraft.client.render.Window;
 import net.minecraftforge.fml.common.eventhandler.Cancelable;
 import net.minecraftforge.fml.common.eventhandler.Event;
 
+import java.util.ArrayList;
+
+@Cancelable
 public class RenderGameOverlayEvent extends Event {
     public final float partialTicks;
     public final Window resolution;
     public final ElementType type;
+
+    public RenderGameOverlayEvent(float partialTicks, Window resolution) {
+        this(partialTicks, resolution, null);
+    }
 
     public RenderGameOverlayEvent(float partialTicks, Window resolution, ElementType type) {
         this.partialTicks = partialTicks;
@@ -24,22 +31,39 @@ public class RenderGameOverlayEvent extends Event {
         public Pre(float partialTicks, Window resolution, ElementType type) {
             super(partialTicks, resolution, type);
         }
+
+        public Pre(RenderGameOverlayEvent parent, ElementType type) {
+            super(parent.partialTicks, parent.resolution, type);
+        }
     }
 
     public static class Post extends RenderGameOverlayEvent {
         public Post(float partialTicks, Window resolution, ElementType type) {
             super(partialTicks, resolution, type);
         }
+
+        public Post(RenderGameOverlayEvent parent, ElementType type) {
+            super(parent.partialTicks, parent.resolution, type);
+        }
+
+        @Override
+        public boolean isCancelable() {
+            return false;
+        }
     }
 
     public static class Text extends Pre {
-        public final java.util.ArrayList<String> left;
-        public final java.util.ArrayList<String> right;
+        public final ArrayList<String> left;
+        public final ArrayList<String> right;
 
-        public Text(float partialTicks, Window resolution, java.util.ArrayList<String> left, java.util.ArrayList<String> right) {
+        public Text(float partialTicks, Window resolution, ArrayList<String> left, ArrayList<String> right) {
             super(partialTicks, resolution, ElementType.TEXT);
             this.left = left;
             this.right = right;
+        }
+
+        public Text(RenderGameOverlayEvent parent, ArrayList<String> left, ArrayList<String> right) {
+            this(parent.partialTicks, parent.resolution, left, right);
         }
     }
 
@@ -51,6 +75,10 @@ public class RenderGameOverlayEvent extends Event {
             super(partialTicks, resolution, ElementType.CHAT);
             this.posX = posX;
             this.posY = posY;
+        }
+
+        public Chat(RenderGameOverlayEvent parent, int posX, int posY) {
+            this(parent.partialTicks, parent.resolution, posX, posY);
         }
     }
 }

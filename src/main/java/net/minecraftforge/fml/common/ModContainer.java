@@ -1,16 +1,27 @@
 package net.minecraftforge.fml.common;
 
-import java.io.File;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-
 import net.minecraftforge.fml.common.eventhandler.EventBus;
 import net.minecraftforge.fml.common.versioning.ArtifactVersion;
 import net.minecraftforge.fml.common.versioning.DefaultArtifactVersion;
+import net.minecraftforge.fml.common.versioning.VersionParser;
+import net.minecraftforge.fml.common.versioning.VersionRange;
 import org.polyfrost.forgecompat.ForgeCompat;
 
+import java.io.File;
+import java.net.URL;
+import java.security.cert.Certificate;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 public interface ModContainer {
+    Map<String, String> EMPTY_PROPERTIES = Collections.emptyMap();
+
+    enum Disableable {
+        YES, RESTART, NEVER, DEPENDENCIES
+    }
+
     String getModId();
 
     String getName();
@@ -82,6 +93,30 @@ public interface ModContainer {
     }
 
     default Class<?> getCustomResourcePackClass() {
+        return null;
+    }
+
+    default Map<String, String> getCustomModProperties() {
+        return EMPTY_PROPERTIES;
+    }
+
+    default Map<String, String> getSharedModDescriptor() {
+        return null;
+    }
+
+    default Disableable canBeDisabled() {
+        return Disableable.NEVER;
+    }
+
+    default VersionRange acceptableMinecraftVersionRange() {
+        return VersionParser.parseRange("[1.8.9]");
+    }
+
+    default Certificate getSigningCertificate() {
+        return null;
+    }
+
+    default URL getUpdateUrl() {
         return null;
     }
 }

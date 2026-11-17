@@ -1,12 +1,12 @@
 package net.minecraftforge.fml.common.discovery;
 
+import org.polyfrost.forgecompat.ForgeCompat;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
-import org.polyfrost.forgecompat.ForgeCompat;
 
 public class ASMDataTable {
     private final Map<String, Set<ASMData>> data = new ConcurrentHashMap<>();

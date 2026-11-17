@@ -13,6 +13,7 @@ import net.minecraftforge.event.CommandEvent;
 
 public class ClientCommandHandler extends CommandRegistry {
     public static final ClientCommandHandler instance = new ClientCommandHandler();
+    public String[] latestAutoComplete = null;
 
     @Override
     public int run(CommandSource source, String message) {

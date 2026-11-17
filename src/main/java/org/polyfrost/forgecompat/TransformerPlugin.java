@@ -1,17 +1,19 @@
 package org.polyfrost.forgecompat;
 
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.MethodNode;
+import org.spongepowered.asm.mixin.MixinEnvironment;
+import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
+import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
+import org.spongepowered.asm.mixin.transformer.ClassInfo;
+
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.MethodNode;
-import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
-import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 
 /**
  * Fabric has no class transformer hook, so Forge transformers run in preApply of the TransformTargetsMixins.
@@ -44,7 +46,7 @@ public class TransformerPlugin implements IMixinConfigPlugin {
         node.nestMembers = null;
         node.permittedSubclasses = null;
         node.recordComponents = null;
-        new ClassReader(bytes).accept(node, 0);
+        new ClassReader(bytes).accept(node, ClassReader.EXPAND_FRAMES);
 
         for (int i = 0; i < node.methods.size(); i++) {
             MethodNode method = node.methods.get(i);
@@ -62,7 +64,22 @@ public class TransformerPlugin implements IMixinConfigPlugin {
             original.instructions.add(method.instructions);
             node.methods.set(i, original);
         }
+        refreshFrames(node.name, bytes);
         ForgePatches.apply(node);
+    }
+
+    // Mixin's Locals pairs the target's frames with ClassInfo's, which were read before the Forge transformers ran
+    private static void refreshFrames(String name, byte[] bytes) {
+        ClassNode transformed = new ClassNode();
+        boolean expand = MixinEnvironment.getCurrentEnvironment().getOption(MixinEnvironment.Option.CLASSREADER_EXPAND_FRAMES);
+        new ClassReader(bytes).accept(transformed, expand ? ClassReader.EXPAND_FRAMES : 0);
+        ClassInfo info = ClassInfo.forName(name);
+        for (MethodNode method : transformed.methods) {
+            ClassInfo.Method methodInfo = info.findMethod(method, method.access | ClassInfo.INCLUDE_INITIALISERS);
+            if (methodInfo == null || methodInfo.getFrames() == null) continue;
+            methodInfo.getFrames().clear();
+            methodInfo.getFrames().addAll(info.new Method(method).getFrames());
+        }
     }
 
     @Override

@@ -50,6 +50,10 @@ public class GameRegistry {
     public static void registerWorldGenerator(Object generator, int weight) {
     }
 
+    public enum Type {
+        BLOCK, ITEM
+    }
+
     public static class UniqueIdentifier {
         public final String modId;
         public final String name;

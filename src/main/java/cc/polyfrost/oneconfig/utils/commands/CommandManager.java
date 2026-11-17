@@ -1,5 +1,15 @@
 package cc.polyfrost.oneconfig.utils.commands;
 
+import cc.polyfrost.oneconfig.utils.commands.annotations.Command;
+import cc.polyfrost.oneconfig.utils.commands.annotations.Main;
+import cc.polyfrost.oneconfig.utils.commands.annotations.SubCommand;
+import cc.polyfrost.oneconfig.utils.commands.annotations.SubCommandGroup;
+import net.minecraft.server.command.AbstractCommand;
+import net.minecraft.server.command.exception.CommandException;
+import net.minecraft.server.command.source.CommandSource;
+import net.minecraft.util.math.BlockPos;
+import net.minecraftforge.client.ClientCommandHandler;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -8,15 +18,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-
-import cc.polyfrost.oneconfig.utils.commands.annotations.Command;
-import cc.polyfrost.oneconfig.utils.commands.annotations.Main;
-import cc.polyfrost.oneconfig.utils.commands.annotations.SubCommand;
-import cc.polyfrost.oneconfig.utils.commands.annotations.SubCommandGroup;
-import net.minecraft.server.command.AbstractCommand;
-import net.minecraft.server.command.exception.CommandException;
-import net.minecraft.server.command.source.CommandSource;
-import net.minecraftforge.client.ClientCommandHandler;
 
 public class CommandManager {
     public static final CommandManager INSTANCE = new CommandManager();
@@ -74,7 +75,7 @@ public class CommandManager {
         }
 
         @Override
-        public List<String> getSuggestions(CommandSource source, String[] args, net.minecraft.util.math.BlockPos pos) {
+        public List<String> getSuggestions(CommandSource source, String[] args, BlockPos pos) {
             Object target = root;
             for (int i = 0; i < args.length - 1; i++) {
                 target = group(target, args[i]);

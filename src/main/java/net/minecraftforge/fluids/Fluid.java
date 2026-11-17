@@ -4,6 +4,8 @@ import net.minecraft.block.Block;
 import net.minecraft.locale.I18n;
 import net.minecraft.resource.Identifier;
 
+import java.util.Locale;
+
 public class Fluid {
     protected final String fluidName;
     protected final Identifier still;
@@ -13,7 +15,7 @@ public class Fluid {
     protected int color = 0xFFFFFFFF;
 
     public Fluid(String fluidName, Identifier still, Identifier flowing) {
-        this.fluidName = fluidName.toLowerCase(java.util.Locale.ENGLISH);
+        this.fluidName = fluidName.toLowerCase(Locale.ENGLISH);
         this.unlocalizedName = fluidName;
         this.still = still;
         this.flowing = flowing;

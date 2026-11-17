@@ -1,12 +1,12 @@
 package net.minecraftforge.common;
 
-import java.io.File;
-import java.util.Arrays;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.dimension.Dimension;
+
+import java.io.File;
+import java.util.Arrays;
 
 public class DimensionManager {
     private static final Integer[] VANILLA = {0, -1, 1};

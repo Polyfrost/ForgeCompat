@@ -1,12 +1,15 @@
 package net.minecraftforge.client.event;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.render.Window;
 import net.minecraftforge.fml.common.eventhandler.Cancelable;
 import net.minecraftforge.fml.common.eventhandler.Event;
+import org.lwjgl.input.Mouse;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class GuiScreenEvent extends Event {
     public final Screen gui;
@@ -129,9 +132,9 @@ public class GuiScreenEvent extends Event {
 
         public BackgroundDrawnEvent(Screen gui) {
             super(gui);
-            net.minecraft.client.render.Window window = new net.minecraft.client.render.Window(net.minecraft.client.Minecraft.getInstance());
-            this.mouseX = org.lwjgl.input.Mouse.getX() * window.getWidth() / net.minecraft.client.Minecraft.getInstance().width;
-            this.mouseY = window.getHeight() - org.lwjgl.input.Mouse.getY() * window.getHeight() / net.minecraft.client.Minecraft.getInstance().height - 1;
+            Window window = new Window(Minecraft.getInstance());
+            this.mouseX = Mouse.getX() * window.getWidth() / Minecraft.getInstance().width;
+            this.mouseY = window.getHeight() - Mouse.getY() * window.getHeight() / Minecraft.getInstance().height - 1;
         }
 
         public int getMouseX() {

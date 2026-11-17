@@ -5,9 +5,11 @@
 
 package net.minecraftforge.common.config;
 
-import static net.minecraftforge.common.config.Configuration.COMMENT_SEPARATOR;
-import static net.minecraftforge.common.config.Configuration.NEW_LINE;
-import static net.minecraftforge.common.config.Configuration.allowedProperties;
+import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import net.minecraftforge.fml.client.config.GuiConfigEntries.IConfigEntry;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -18,12 +20,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-
-import net.minecraftforge.fml.client.config.GuiConfigEntries.IConfigEntry;
+import static net.minecraftforge.common.config.Configuration.COMMENT_SEPARATOR;
+import static net.minecraftforge.common.config.Configuration.NEW_LINE;
+import static net.minecraftforge.common.config.Configuration.allowedProperties;
 
 public class ConfigCategory implements Map<String, Property>
 {
@@ -408,7 +407,7 @@ public class ConfigCategory implements Map<String, Property>
     @Override public Collection<Property> values() { return properties.values(); }
 
     @Override //Immutable copy, changes will NOT be reflected in this category
-    public Set<java.util.Map.Entry<String, Property>> entrySet()
+    public Set<Map.Entry<String, Property>> entrySet()
     {
         return ImmutableSet.copyOf(properties.entrySet());
     }

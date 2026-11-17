@@ -1,12 +1,12 @@
 package cc.polyfrost.oneconfig.utils;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
 
 public final class NetworkUtils {
     private NetworkUtils() {

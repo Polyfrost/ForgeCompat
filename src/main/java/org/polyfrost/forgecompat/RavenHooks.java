@@ -1,9 +1,9 @@
 package org.polyfrost.forgecompat;
 
+import net.minecraft.entity.Entity;
+
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
-
-import net.minecraft.entity.Entity;
 
 import static java.lang.invoke.MethodType.methodType;
 

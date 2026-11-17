@@ -1,21 +1,12 @@
 package org.polyfrost.forgecompat;
 
-import java.lang.reflect.Field;
-import java.nio.ByteBuffer;
-import java.nio.file.Path;
-import java.security.CodeSource;
-import java.security.ProtectionDomain;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Set;
-
-import javax.swing.LookAndFeel;
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
-
 import net.minecraft.block.Block;
 import net.minecraft.block.state.BlockState;
+import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entities;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.living.effect.StatusEffect;
 import net.minecraft.entity.living.player.PlayerEntity;
 import net.minecraft.item.AxeItem;
 import net.minecraft.item.CreativeModeTab;
@@ -24,8 +15,26 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.PickaxeItem;
 import net.minecraft.item.ShovelItem;
 import net.minecraft.resource.Identifier;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
+import net.minecraft.world.World;
+import net.minecraft.world.WorldView;
+import net.minecraftforge.fml.common.registry.RegistryDelegate;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.Display;
+
+import javax.swing.LookAndFeel;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
+import java.lang.reflect.Field;
+import java.nio.ByteBuffer;
+import java.nio.file.Path;
+import java.security.CodeSource;
+import java.security.ProtectionDomain;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Set;
+import java.util.function.UnaryOperator;
 
 public final class Hooks {
     static final Set<String> FORGE_METHODS = Set.of(
@@ -49,6 +58,49 @@ public final class Hooks {
         if (name == null || !name.startsWith("net.minecraft.")) return name;
         String mapped = ForgeCompat.mappings().mcpToRuntime(name.replace('.', '/'));
         return mapped == null ? name : mapped.replace('/', '.');
+    }
+
+    public static String deobfClass(String notch) {
+        Mappings m = ForgeCompat.mappings();
+        String runtime = m.notchToInt.get(notch);
+        return runtime == null ? mapNested(notch, Hooks::deobfClass) : m.intToMcp.getOrDefault(runtime, notch);
+    }
+
+    public static String obfClass(String mcp) {
+        Mappings m = ForgeCompat.mappings();
+        String runtime = m.fromSrg.map(mcp);
+        return runtime == null ? mapNested(mcp, Hooks::obfClass) : m.intToNotch.getOrDefault(runtime, mcp);
+    }
+
+    private static String mapNested(String name, UnaryOperator<String> mapper) {
+        int i = name.lastIndexOf('$');
+        return i < 0 ? name : mapper.apply(name.substring(0, i)) + name.substring(i);
+    }
+
+    public static Set<String> obfedClasses() {
+        return Collections.unmodifiableSet(ForgeCompat.mappings().notchToInt.keySet());
+    }
+
+    public static String staticFieldType(String oldOwner, String oldName, String newOwner, String newName) {
+        return ForgeCompat.mappings().staticFieldType(oldOwner, oldName, newOwner, newName);
+    }
+
+    public static String srgMethod(String owner, String name, String desc) {
+        Mappings m = ForgeCompat.mappings();
+        String intOwner = m.notchToInt.getOrDefault(owner, owner);
+        String runtime = m.toInt.mapMethodName(owner, name, desc);
+        String srg = m.srgMethod(intOwner, runtime, m.toInt.mapMethodDesc(desc));
+        return srg == null ? name : srg;
+    }
+
+    public static String srgField(String owner, String name, String desc) {
+        Mappings m = ForgeCompat.mappings();
+        String intOwner = m.notchToInt.getOrDefault(owner, owner);
+        if (desc == null) desc = m.notchFieldDesc(owner, name);
+        if (desc == null) return name;
+        String runtime = m.toInt.mapFieldName(owner, name, desc);
+        String srg = m.srgField(intOwner, runtime, m.toInt.mapDesc(desc));
+        return srg == null ? name : srg;
     }
 
     public static Field getDeclaredField(Class<?> owner, String name) throws NoSuchFieldException {
@@ -144,10 +196,10 @@ public final class Hooks {
 
     private static Field buttonHeight;
 
-    public static int buttonHeight(net.minecraft.client.gui.widget.ButtonWidget button) {
+    public static int buttonHeight(ButtonWidget button) {
         try {
             if (buttonHeight == null) {
-                buttonHeight = net.minecraft.client.gui.widget.ButtonWidget.class.getDeclaredField(ForgeCompat.mappings().srgToRuntime("field_146121_g"));
+                buttonHeight = ButtonWidget.class.getDeclaredField(ForgeCompat.mappings().srgToRuntime("field_146121_g"));
                 buttonHeight.setAccessible(true);
             }
             return buttonHeight.getInt(button);
@@ -157,42 +209,42 @@ public final class Hooks {
     }
 
     public static int nextPotionId() {
-        net.minecraft.entity.living.effect.StatusEffect[] effects = net.minecraft.entity.living.effect.StatusEffect.BY_ID;
+        StatusEffect[] effects = StatusEffect.BY_ID;
         for (int i = 1; i < effects.length; i++) if (effects[i] == null) return i;
         throw new IllegalStateException("No free potion ids left");
     }
 
-    public static net.minecraftforge.fml.common.registry.RegistryDelegate<?> delegate(Object entry) {
-        net.minecraft.resource.Identifier key = entry instanceof net.minecraft.block.Block block ? net.minecraft.block.Block.REGISTRY.getKey(block) : net.minecraft.item.Item.REGISTRY.getKey((net.minecraft.item.Item) entry);
-        return new net.minecraftforge.fml.common.registry.RegistryDelegate<Object>() {
+    public static RegistryDelegate<?> delegate(Object entry) {
+        Identifier key = entry instanceof Block block ? Block.REGISTRY.getKey(block) : Item.REGISTRY.getKey((Item) entry);
+        return new RegistryDelegate<Object>() {
             public Object get() { return entry; }
             public String name() { return String.valueOf(key); }
-            public net.minecraft.resource.Identifier getResourceName() { return key; }
+            public Identifier getResourceName() { return key; }
             @SuppressWarnings("unchecked")
-            public Class<Object> type() { return (Class<Object>) (entry instanceof net.minecraft.block.Block ? net.minecraft.block.Block.class : net.minecraft.item.Item.class); }
+            public Class<Object> type() { return (Class<Object>) (entry instanceof Block ? Block.class : Item.class); }
         };
     }
 
     public static float eyeHeight(Object entity) {
-        return ((net.minecraft.entity.Entity) entity).getEyeHeight();
+        return ((Entity) entity).getEyeHeight();
     }
 
-    public static boolean isSideSolid(Object world, net.minecraft.util.math.BlockPos pos, net.minecraft.util.math.Direction side, boolean defaultValue) {
-        net.minecraft.block.state.BlockState state = ((net.minecraft.world.WorldView) world).getBlockState(pos);
+    public static boolean isSideSolid(Object world, BlockPos pos, Direction side, boolean defaultValue) {
+        BlockState state = ((WorldView) world).getBlockState(pos);
         return state == null ? defaultValue : state.getBlock().isCube();
     }
 
-    private static volatile net.minecraft.client.world.ClientWorld realWorld;
+    private static volatile ClientWorld realWorld;
 
-    public static boolean isSceneWorld(net.minecraft.world.World world) {
+    public static boolean isSceneWorld(World world) {
         return world != null && world.isClient && world != realWorld;
     }
 
-    public static net.minecraft.client.world.ClientWorld realWorld() {
+    public static ClientWorld realWorld() {
         return realWorld;
     }
 
-    public static void setRealWorld(net.minecraft.client.world.ClientWorld world) {
+    public static void setRealWorld(ClientWorld world) {
         realWorld = world;
     }
 }

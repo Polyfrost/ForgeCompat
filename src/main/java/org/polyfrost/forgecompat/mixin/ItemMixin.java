@@ -1,13 +1,13 @@
 package org.polyfrost.forgecompat.mixin;
 
+import net.minecraft.client.render.TextRenderer;
 import net.minecraft.entity.living.player.PlayerEntity;
+import net.minecraft.item.CreativeModeTab;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
-import net.minecraft.client.render.TextRenderer;
-import net.minecraft.item.CreativeModeTab;
 import org.spongepowered.asm.mixin.Mixin;
 
 @Mixin(Item.class)

@@ -1,10 +1,10 @@
 package net.minecraftforge.common.brewing;
 
+import net.minecraft.item.ItemStack;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import net.minecraft.item.ItemStack;
 
 public class BrewingRecipeRegistry {
     private static final List<IBrewingRecipe> RECIPES = new ArrayList<>(List.of(new VanillaBrewingRecipe()));
