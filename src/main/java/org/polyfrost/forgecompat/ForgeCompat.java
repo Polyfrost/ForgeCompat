@@ -398,11 +398,13 @@ public class ForgeCompat implements PreLaunchEntrypoint {
         });
         mods.forEach((name, mod) -> {
             long start = System.nanoTime();
+            LegacyOneConfig.deferRegistration();
             try {
                 fire(mod, new FMLInitializationEvent());
             } catch (Throwable t) {
                 LOGGER.error("Failed to initialize Forge mod {}", name, t);
             }
+            LegacyOneConfig.flushRegistration();
             LOGGER.info("Initialized Forge mod {} in {} ms", name, (System.nanoTime() - start) / 1_000_000);
         });
         LOADED_MODS.putAll(mods);
