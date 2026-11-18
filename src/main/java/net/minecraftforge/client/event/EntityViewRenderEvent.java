@@ -19,6 +19,18 @@ public abstract class EntityViewRenderEvent extends Event {
         this.renderPartialTicks = renderPartialTicks;
     }
 
+    @HasResult
+    public static class RenderFogEvent extends EntityViewRenderEvent {
+        public final int fogMode;
+        public final float farPlaneDistance;
+
+        public RenderFogEvent(GameRenderer renderer, Entity entity, Block block, double renderPartialTicks, int fogMode, float farPlaneDistance) {
+            super(renderer, entity, block, renderPartialTicks);
+            this.fogMode = fogMode;
+            this.farPlaneDistance = farPlaneDistance;
+        }
+    }
+
     @Cancelable
     public static class FogDensity extends EntityViewRenderEvent {
         public float density;

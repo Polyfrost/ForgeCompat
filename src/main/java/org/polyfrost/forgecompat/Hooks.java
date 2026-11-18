@@ -1,5 +1,6 @@
 package org.polyfrost.forgecompat;
 
+import com.google.common.reflect.ClassPath;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.BlockState;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -26,12 +27,14 @@ import org.lwjgl.opengl.Display;
 import javax.swing.LookAndFeel;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
+import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 import java.util.function.UnaryOperator;
@@ -52,6 +55,28 @@ public final class Hooks {
 
     public static Class<?> forName(String name, boolean initialize, ClassLoader loader) throws ClassNotFoundException {
         return Class.forName(runtimeClassName(name), initialize, loader);
+    }
+
+    public static Class<?> loadClassInfo(ClassPath.ClassInfo info) {
+        try {
+            return info.load();
+        } catch (IllegalStateException | NoClassDefFoundError original) {
+            try {
+                return Class.forName(info.getName(), false, Hooks.class.getClassLoader());
+            } catch (ClassNotFoundException | LinkageError e) {
+                original.addSuppressed(e);
+                throw original;
+            }
+        }
+    }
+
+    public static Object[] toArray(Collection<?> collection, Class<?> arrayType) {
+        try {
+            return collection.toArray((Object[]) Array.newInstance(arrayType.getComponentType(), collection.size()));
+        } catch (ArrayStoreException e) {
+            // the elements don't fit the cast either, keep the old behaviour
+            return collection.toArray();
+        }
     }
 
     private static String runtimeClassName(String name) {

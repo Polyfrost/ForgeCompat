@@ -13,9 +13,11 @@ import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.render.platform.GlStateManager;
 import net.minecraft.entity.Entity;
 import net.minecraftforge.client.ForgeHooksClient;
+import net.minecraftforge.client.IRenderHandler;
 import net.minecraftforge.client.event.EntityViewRenderEvent;
 import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.common.MinecraftForge;
+import org.polyfrost.forgecompat.ForgeDimension;
 import org.polyfrost.forgecompat.Hooks;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -34,9 +36,21 @@ public abstract class GameRendererMixin {
     private float fogGreen;
     @Shadow
     private float fogBlue;
+    @Shadow
+    private float renderDistance;
 
     @Unique
     private boolean forgecompat$fogOverride;
+    @Unique
+    private boolean forgecompat$normalFog;
+
+    @Inject(method = "renderSnowAndRain(F)V", at = @At("HEAD"), cancellable = true)
+    private void forgecompat$weatherRenderer(float tickDelta, CallbackInfo ci) {
+        IRenderHandler renderer = ((ForgeDimension) minecraft.world.dimension).getWeatherRenderer();
+        if (renderer == null) return;
+        renderer.render(tickDelta, minecraft.world, minecraft);
+        ci.cancel();
+    }
 
     @Inject(method = "setupFog", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;getBlockInside(Lnet/minecraft/world/World;Lnet/minecraft/entity/Entity;F)Lnet/minecraft/block/Block;", shift = At.Shift.AFTER))
     private void forgecompat$fogDensity(int startCoords, float tickDelta, CallbackInfo ci) {
@@ -47,6 +61,21 @@ public abstract class GameRendererMixin {
         if (!MinecraftForge.EVENT_BUS.post(event) || event.density < 0) return;
         GlStateManager.fogDensity(event.density);
         forgecompat$fogOverride = true;
+    }
+
+    @Inject(method = "setupFog", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/dimension/Dimension;isFogThick(II)Z"))
+    private void forgecompat$normalFog(int startCoords, float tickDelta, CallbackInfo ci) {
+        forgecompat$normalFog = true;
+    }
+
+    @Inject(method = "setupFog", at = @At("TAIL"))
+    private void forgecompat$renderFog(int startCoords, float tickDelta, CallbackInfo ci) {
+        boolean normalFog = forgecompat$normalFog;
+        forgecompat$normalFog = false;
+        if (!normalFog || forgecompat$fogOverride || !MinecraftForge.EVENT_BUS.hasListeners(EntityViewRenderEvent.RenderFogEvent.class) || Hooks.isSceneWorld(minecraft.world)) return;
+        Entity entity = minecraft.getCamera();
+        Block block = Camera.getBlockInside(minecraft.world, entity, tickDelta);
+        MinecraftForge.EVENT_BUS.post(new EntityViewRenderEvent.RenderFogEvent((GameRenderer) (Object) this, entity, block, tickDelta, startCoords, renderDistance));
     }
 
     @WrapWithCondition(method = "setupFog", at = {

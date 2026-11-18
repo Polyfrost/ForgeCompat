@@ -47,7 +47,8 @@
     "StatusEffectMixin",
     "TextureAtlasMixin",
     "WorldChunkMixin",
-    "WorldMixin"
+    "WorldMixin",
+    "WorldRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -25,6 +25,7 @@ import net.minecraftforge.fml.common.gameevent.InputEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import org.polyfrost.forgecompat.ForgeCompat;
 import org.polyfrost.forgecompat.Hooks;
+import org.polyfrost.forgecompat.LabyModHooks;
 import org.polyfrost.forgecompat.ModResourcePack;
 import org.polyfrost.forgecompat.RavenHooks;
 import org.spongepowered.asm.mixin.Final;
@@ -58,7 +59,9 @@ public class MinecraftMixin {
     @WrapMethod(method = "openScreen")
     private void forgecompat$guiOpen(Screen screen, Operation<Void> original) {
         GuiOpenEvent event = new GuiOpenEvent(screen);
-        if (!MinecraftForge.EVENT_BUS.post(event)) original.call(event.gui);
+        boolean canceled = MinecraftForge.EVENT_BUS.post(event);
+        LabyModHooks.afterGuiOpenEvent();
+        if (!canceled) original.call(event.gui);
     }
 
     @Inject(method = "setWorld(Lnet/minecraft/client/world/ClientWorld;Ljava/lang/String;)V", at = @At("HEAD"))

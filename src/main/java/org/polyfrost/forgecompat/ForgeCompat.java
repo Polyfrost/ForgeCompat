@@ -943,13 +943,13 @@ public class ForgeCompat implements PreLaunchEntrypoint {
         @Override
         public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
             name = unique(this.name, name, desc);
-            if (mixinTarget == null) return hooks(access, name, desc, signature, exceptions);
             return new MethodNode(Opcodes.ASM9, access, name, desc, signature, exceptions) {
                 @Override
                 public void visitEnd() {
-                    if ((access & Opcodes.ACC_PRIVATE) == 0 && (isOverwrite(visibleAnnotations) || isOverwrite(invisibleAnnotations))) {
+                    if (mixinTarget != null && (access & Opcodes.ACC_PRIVATE) == 0 && (isOverwrite(visibleAnnotations) || isOverwrite(invisibleAnnotations))) {
                         access = access & ~Opcodes.ACC_PROTECTED | Opcodes.ACC_PUBLIC;
                     }
+                    LegacyBytecode.apply(this);
                     accept(hooks(access, name, desc, signature, exceptions.toArray(new String[0])));
                 }
             };
@@ -1014,6 +1014,8 @@ public class ForgeCompat implements PreLaunchEntrypoint {
                         super.visitMethodInsn(opcode, owner, name, handshakeDesc + ")V", itf);
                     } else if (opcode == Opcodes.INVOKESTATIC && owner.equals("java/lang/Class") && name.equals("forName")) {
                         super.visitMethodInsn(opcode, HOOKS, name, desc, false);
+                    } else if (opcode == Opcodes.INVOKEVIRTUAL && owner.equals("com/google/common/reflect/ClassPath$ClassInfo") && name.equals("load")) {
+                        super.visitMethodInsn(Opcodes.INVOKESTATIC, HOOKS, "loadClassInfo", "(Lcom/google/common/reflect/ClassPath$ClassInfo;)Ljava/lang/Class;", false);
                     } else if (opcode == Opcodes.INVOKEVIRTUAL && owner.equals("java/lang/Class") && name.equals("getDeclaredField")) {
                         super.visitMethodInsn(Opcodes.INVOKESTATIC, HOOKS, "getDeclaredField", "(Ljava/lang/Class;Ljava/lang/String;)Ljava/lang/reflect/Field;", false);
                     } else if ((opcode == Opcodes.INVOKEVIRTUAL || opcode == Opcodes.INVOKEINTERFACE) && mappings().intToNotch.containsKey(owner) && Hooks.FORGE_METHODS.contains(name + "/" + Type.getArgumentCount(desc))
