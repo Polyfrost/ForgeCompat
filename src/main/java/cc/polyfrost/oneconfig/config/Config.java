@@ -5,6 +5,7 @@ import cc.polyfrost.oneconfig.config.data.Mod;
 import org.polyfrost.forgecompat.LegacyOneConfig;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -13,7 +14,9 @@ public class Config {
     public final transient Mod mod;
     public final transient String configFile;
     public boolean enabled;
+    public final transient HashMap<String, Object> optionNames = new HashMap<>();
     private transient LegacyOneConfig.Bridge bridge;
+    private transient boolean initialized;
     private final transient List<Consumer<LegacyOneConfig.Bridge>> pending = new ArrayList<>();
 
     public Config(Mod modData, String configFile, boolean enabled) {
@@ -28,7 +31,12 @@ public class Config {
     }
 
     public void initialize() {
-        if (bridge != null) return;
+        if (initialized) return;
+        initialized = true;
+        LegacyOneConfig.whenReady(this::attach);
+    }
+
+    private void attach() {
         bridge = LegacyOneConfig.register(this);
         pending.forEach(action -> action.accept(bridge));
         pending.clear();

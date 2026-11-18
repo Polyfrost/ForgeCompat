@@ -1,12 +1,14 @@
 package cc.polyfrost.oneconfig.config.data;
 
 import cc.polyfrost.oneconfig.config.Config;
+import cc.polyfrost.oneconfig.config.elements.OptionPage;
 
 public class Mod implements Comparable<Mod> {
     public final String name;
     public final ModType modType;
     public final String modIcon;
     public Config config;
+    public OptionPage defaultPage = new OptionPage();
 
     public Mod(String name, ModType modType, String modIcon) {
         this.name = name;

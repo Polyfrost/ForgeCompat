@@ -1,18 +1,23 @@
 package org.polyfrost.forgecompat;
 
+import cc.polyfrost.oneconfig.config.annotations.Button;
 import cc.polyfrost.oneconfig.config.annotations.Dropdown;
 import cc.polyfrost.oneconfig.config.annotations.DualOption;
 import cc.polyfrost.oneconfig.config.annotations.Exclude;
 import cc.polyfrost.oneconfig.config.annotations.HUD;
+import cc.polyfrost.oneconfig.config.annotations.Slider;
 import cc.polyfrost.oneconfig.config.annotations.Switch;
 import cc.polyfrost.oneconfig.config.core.OneKeyBind;
 import cc.polyfrost.oneconfig.config.data.ModType;
+import cc.polyfrost.oneconfig.config.elements.OptionSubcategory;
+import cc.polyfrost.oneconfig.gui.elements.config.ConfigSwitch;
 import cc.polyfrost.oneconfig.hud.TextHud;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
+import org.apache.logging.log4j.LogManager;
 import org.polyfrost.oneconfig.api.config.v1.Config;
 import org.polyfrost.oneconfig.api.config.v1.Properties;
 import org.polyfrost.oneconfig.api.config.v1.Property;
@@ -54,6 +59,30 @@ public final class LegacyOneConfig {
             listening = true;
             MinecraftForge.EVENT_BUS.register(new Listener());
             EventManager.register(HudEditorToggleEvent.class, (Consumer<HudEditorToggleEvent>) event -> editing = event.open);
+        }
+    }
+
+    private static List<Runnable> deferred;
+
+    public static void whenReady(Runnable registration) {
+        if (deferred != null) deferred.add(registration);
+        else registration.run();
+    }
+
+    public static void deferRegistration() {
+        deferred = new ArrayList<>();
+    }
+
+    public static void flushRegistration() {
+        List<Runnable> queued = deferred;
+        deferred = null;
+        if (queued == null) return;
+        for (Runnable registration : queued) {
+            try {
+                registration.run();
+            } catch (Throwable t) {
+                LogManager.getLogger("ForgeCompat").error("Failed to register legacy OneConfig config", t);
+            }
         }
     }
 
@@ -134,6 +163,13 @@ public final class LegacyOneConfig {
             enabled.addMetadata("masterToggle", true);
             tree.put(enabled);
             collect(tree, legacy, cc.polyfrost.oneconfig.config.Config.class, null, null, "");
+            for (OptionSubcategory sub : legacy.mod.defaultPage.subcategories) {
+                for (Object element : sub.options) {
+                    if (!(element instanceof ConfigSwitch s)) continue;
+                    String id = (s.category + "_" + s.subcategory + "_" + s.field.getName()).replace(' ', '_');
+                    option(tree, property(id, s.name, s.description, s.field, s.parent), Visualizer.SwitchVisualizer.class, s.category, s.subcategory);
+                }
+            }
             return tree;
         }
 
@@ -167,6 +203,19 @@ public final class LegacyOneConfig {
                                 id, a.name(), description(a.description()), Integer.class);
                         p.addMetadata("options", new String[]{a.left(), a.right()});
                         option(tree, p, Visualizer.RadioVisualizer.class,
+                                category == null ? a.category() : category, subcategory == null ? a.subcategory() : subcategory);
+                    } else if (f.getAnnotation(Slider.class) instanceof Slider a) {
+                        Property<?> p = property(id, a.name(), a.description(), f, target);
+                        p.addMetadata("min", a.min());
+                        p.addMetadata("max", a.max());
+                        p.addMetadata("step", (float) a.step());
+                        option(tree, p, Visualizer.SliderVisualizer.class,
+                                category == null ? a.category() : category, subcategory == null ? a.subcategory() : subcategory);
+                    } else if (f.getAnnotation(Button.class) instanceof Button a) {
+                        Property<?> p = Properties.dummy(id, a.name(), description(a.description()));
+                        p.addMetadata("text", a.text());
+                        p.addMetadata("runnable", (Runnable) () -> ((Runnable) get(f, target)).run());
+                        option(tree, p, Visualizer.ButtonVisualizer.class,
                                 category == null ? a.category() : category, subcategory == null ? a.subcategory() : subcategory);
                     } else if (f.getAnnotation(HUD.class) instanceof HUD a && get(f, target) instanceof TextHud hud) {
                         addHud(tree, hud, id, a);
