@@ -76,7 +76,7 @@ public class ReflectionHelper {
         Exception failed = null;
         for (String name : names) {
             try {
-                Method method = owner.getDeclaredMethod(name, params);
+                Method method = Hooks.getDeclaredMethod(owner, name, params);
                 method.setAccessible(true);
                 return method;
             } catch (Exception e) {

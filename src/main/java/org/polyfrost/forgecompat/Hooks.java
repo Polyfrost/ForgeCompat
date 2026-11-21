@@ -23,12 +23,14 @@ import net.minecraft.world.WorldView;
 import net.minecraftforge.fml.common.registry.RegistryDelegate;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.Display;
+import org.objectweb.asm.Type;
 
 import javax.swing.LookAndFeel;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.security.CodeSource;
@@ -136,6 +138,23 @@ public final class Hooks {
             if (runtime != null) return owner.getDeclaredField(runtime);
             if (owner == Field.class && name.equals("modifiers")) return Hooks.class.getDeclaredField("modifiers");
             if (owner == Mouse.class && name.equals("buttons")) return Hooks.class.getDeclaredField("mouseButtons");
+            throw e;
+        }
+    }
+
+    public static Method getDeclaredMethod(Class<?> owner, String name, Class<?>... params) throws NoSuchMethodException {
+        try {
+            return owner.getDeclaredMethod(name, params);
+        } catch (NoSuchMethodException e) {
+            Mappings mappings = ForgeCompat.mappings();
+            String srg = mappings.srgMethodName(name);
+            if (srg == null) throw e;
+            String internal = Type.getInternalName(owner);
+            Class<?>[] wanted = params == null ? new Class<?>[0] : params;
+            for (Method method : owner.getDeclaredMethods()) {
+                if (Arrays.equals(method.getParameterTypes(), wanted)
+                        && srg.equals(mappings.srgMethod(internal, method.getName(), Type.getMethodDescriptor(method)))) return method;
+            }
             throw e;
         }
     }

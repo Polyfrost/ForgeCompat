@@ -23,4 +23,8 @@ public class BlockMixin {
     public boolean isAir(WorldView world, BlockPos pos) {
         return ((Block) (Object) this).getMaterial() == Material.AIR;
     }
+
+    public int getLightValue(WorldView world, BlockPos pos) {
+        return ((Block) (Object) this).getLight();
+    }
 }

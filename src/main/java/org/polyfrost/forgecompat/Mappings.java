@@ -31,6 +31,7 @@ final class Mappings {
     private final Map<String, String> srgToInt = new HashMap<>();
     /** [runtime owner/]srg name + runtime desc -> name, as a srg name can cover several unrelated methods */
     private final Map<String, String> srgMethods = new HashMap<>();
+    private final Map<String, String> runtimeToSrgMethod = new HashMap<>();
     private final Map<String, String> mcpFields = new HashMap<>();
     // "owner/name desc" -> name
     private final Map<String, String> notchMethods = new HashMap<>();
@@ -114,6 +115,7 @@ final class Mappings {
                 }
                 if (p[5].startsWith("func_")) {
                     srgToInt.put(p[5], name);
+                    runtimeToSrgMethod.put(name, p[5]);
                     srgMethods.put(p[5] + runtimeDesc, name);
                     srgMethods.put(intOwner + "/" + p[5] + runtimeDesc, name);
                 }
@@ -143,6 +145,10 @@ final class Mappings {
 
     String srgToRuntime(String srg) {
         return srgToInt.get(srg);
+    }
+
+    String srgMethodName(String name) {
+        return name.startsWith("func_") ? name : runtimeToSrgMethod.get(name);
     }
 
     String srgMethod(String owner, String name, String desc) {

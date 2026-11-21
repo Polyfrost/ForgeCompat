@@ -1,6 +1,5 @@
 package net.minecraft.launchwrapper;
 
-import net.fabricmc.loader.impl.launch.FabricLauncherBase;
 import org.polyfrost.forgecompat.ForgeCompat;
 
 import java.io.IOException;
@@ -38,7 +37,7 @@ public class LaunchClassLoader extends URLClassLoader {
     public void addURL(URL url) {
         sources.add(url);
         try {
-            FabricLauncherBase.getLauncher().addToClassPath(Path.of(url.toURI()));
+            ForgeCompat.addJar(Path.of(url.toURI()));
         } catch (URISyntaxException | IllegalArgumentException | UnsupportedOperationException e) {
             super.addURL(url);
         }
