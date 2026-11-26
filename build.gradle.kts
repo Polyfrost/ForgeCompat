@@ -103,7 +103,8 @@ tasks {
                 error("UnnecessarilyFullyQualified")
             }
         }
-        finalizedBy("spotlessJavaCheck", "checkstyleMain")
+        val sourceSetName = sourceSets.find { it.compileJavaTaskName == name }!!.name
+        finalizedBy("spotlessJavaCheck", "checkstyle${sourceSetName.capitalize()}")
     }
 
     named("runClient") { dependsOn(stubs) }
