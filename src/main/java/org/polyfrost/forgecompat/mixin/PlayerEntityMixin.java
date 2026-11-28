@@ -4,6 +4,8 @@ import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
+import com.llamalad7.mixinextras.sugar.ref.LocalFloatRef;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.entity.Entity;
@@ -99,6 +101,14 @@ public class PlayerEntityMixin {
         PlayerEntity player = (PlayerEntity) (Object) this;
         if (Hooks.isSceneWorld(player.world)) return;
         if (MinecraftForge.EVENT_BUS.post(new LivingAttackEvent(player, source, amount))) cir.setReturnValue(false);
+    }
+
+    @Inject(method = "applyDamage", at = @At("HEAD"), cancellable = true)
+    private void forgecompat$hurt(DamageSource source, float amount, CallbackInfo ci, @Local(argsOnly = true) LocalFloatRef amountRef) {
+        PlayerEntity entity = (PlayerEntity) (Object) this;
+        if (Hooks.isSceneWorld(entity.world) || entity.isInvulnerable(source)) return;
+        amountRef.set(ForgeHooks.onLivingHurt(entity, source, amount));
+        if (amountRef.get() <= 0) ci.cancel();
     }
 
     @Inject(method = "copyFrom", at = @At("TAIL"))

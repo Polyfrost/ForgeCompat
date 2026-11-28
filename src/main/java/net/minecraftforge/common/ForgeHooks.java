@@ -1,12 +1,14 @@
 package net.minecraftforge.common;
 
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.living.LivingEntity;
 import net.minecraft.entity.living.player.PlayerEntity;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.Formatting;
 import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
+import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
 
 import java.net.URI;
@@ -68,5 +70,10 @@ public class ForgeHooks {
 
     public static boolean onPlayerAttackTarget(PlayerEntity player, Entity target) {
         return !MinecraftForge.EVENT_BUS.post(new AttackEntityEvent(player, target));
+    }
+
+    public static float onLivingHurt(LivingEntity entity, DamageSource source, float amount) {
+        LivingHurtEvent event = new LivingHurtEvent(entity, source, amount);
+        return MinecraftForge.EVENT_BUS.post(event) ? 0 : event.ammount;
     }
 }
